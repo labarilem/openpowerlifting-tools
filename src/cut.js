@@ -1,13 +1,13 @@
-const fs = require('fs');
-const path = require('path');
-const { PDFDocument } = require('pdf-lib');
+import fs from 'fs';
+import path from 'path';
+import { PDFDocument } from 'pdf-lib';
 
 async function cutPDF() {
   try {
     // Read input parameters
-    const inputJsonPath = path.join(__dirname, '../examples/1/input.json');
-    const inputPdfPath = path.join(__dirname, '../examples/1/input.pdf');
-    const outputPdfPath = path.join(__dirname, '../examples/1/input-cut.pdf');
+    const inputJsonPath = path.join(process.cwd(), 'examples', '1', 'input.json');
+    const inputPdfPath = path.join(process.cwd(), 'examples', '1', 'input.pdf');
+    const outputPdfPath = path.join(process.cwd(), 'examples', '1', 'input-cut.pdf');
 
     const inputData = JSON.parse(fs.readFileSync(inputJsonPath, 'utf8'));
     const { fromPage, toPage } = inputData;
