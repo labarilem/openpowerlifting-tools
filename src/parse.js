@@ -2,12 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const pdfjs = require("pdfjs-dist");
 const { teamNames } = require("./team-names");
+const { firstNames } = require("./first-names");
 
 /**
- * Extract red rectangles from operator list, transforming to viewport coords
+ * Extract red rectangles from operator list (PDF coords)
  * Tracks CTM (Current Transformation Matrix) through save/restore/transform ops
+ * Returns rectangles in PDF coordinate space (not viewport-transformed)
  */
-function extractRedRectangles(opList, pdfjs, viewport) {
+function extractRedRectangles(opList, pdfjs) {
   const { fnArray, argsArray } = opList;
   const OPS = pdfjs.OPS;
   const Util = pdfjs.Util;
@@ -43,8 +45,7 @@ function extractRedRectangles(opList, pdfjs, viewport) {
             const w = coords[j * 4 + 2];
             const h = coords[j * 4 + 3];
 
-            // Transform rectangle corners by CTM, then viewport
-            // This handles rotation, scaling, and translation
+            // Transform rectangle corners by CTM to get PDF space coordinates
             const corners = [
               [x0, y0],
               [x0 + w, y0],
@@ -53,8 +54,7 @@ function extractRedRectangles(opList, pdfjs, viewport) {
             ];
 
             const transformedCorners = corners.map((corner) => {
-              const ctmTransformed = Util.applyTransform(corner, ctm);
-              return Util.applyTransform(ctmTransformed, viewport.transform);
+              return Util.applyTransform(corner, ctm);
             });
 
             // Find bounding box of transformed corners
@@ -94,21 +94,30 @@ function dedupeRects(rects) {
     if (!seen.has(key)) {
       seen.add(key);
       result.push(r);
-      console.log(r);
+      // console.log(r);
     }
   }
 
   return result;
 }
 
-function isInAnyRectangle(textX, textY, rects) {
+function isInAnyRectangle(textX, textY, textWidth, textHeight, rects) {
+  // Check if text (in PDF coords) overlaps any red rectangle (in PDF coords)
+  // Both use same PDF coordinate space now
   return rects.some((rect) => {
-    return (
-      textX >= rect.x &&
-      textX <= rect.x + rect.w &&
-      textY >= rect.y &&
-      textY <= rect.y + rect.h
-    );
+    const textRight = textX + textWidth;
+    const textTop = textY + textHeight;
+    const rectRight = rect.x + rect.w;
+    const rectTop = rect.y + rect.h;
+
+    // AABB: no overlap if separated on any axis
+    const noIntersection =
+      textRight < rect.x || // text is entirely to the left
+      textX > rectRight || // text is entirely to the right
+      textTop < rect.y || // text is entirely below
+      textY > rectTop; // text is entirely above
+
+    return !noIntersection;
   });
 }
 
@@ -127,9 +136,9 @@ async function parsePdfStructural(pdfPath) {
       const page = await pdf.getPage(pageNum);
       const viewport = page.getViewport({ scale: 1 });
 
-      // 👉 extract rectangles (transformed to viewport space)
+      // Extract red rectangles in PDF coordinate space
       const opList = await page.getOperatorList();
-      const redRects = extractRedRectangles(opList, pdfjs, viewport);
+      const redRects = extractRedRectangles(opList, pdfjs);
 
       const content = await page.getTextContent();
 
@@ -137,8 +146,17 @@ async function parsePdfStructural(pdfPath) {
         if (item.str && item.str.trim().length > 0) {
           const textX = item.transform[4];
           const textY = item.transform[5];
+          const textWidth = item.width || 0;
+          const textHeight = item.height || 0;
 
-          const isInvalidLift = isInAnyRectangle(textX, textY, redRects);
+          const isInvalidLift = isInAnyRectangle(
+            textX,
+            textY,
+            textWidth,
+            textHeight,
+            redRects,
+          );
+
           // console.log({ text: item.str, transform: item.transform });
 
           allItems.push({
@@ -255,9 +273,17 @@ function parseRowData(rowItems, weightClass) {
     // Handle various apostrophe characters (', ´, ʹ, ')
     /** @type Array<string> */
     const nameParts = rowItems[1].text.split(/\s+/);
+    let lastFirstNameIndex = nameParts.length - 1;
+    for (let i = lastFirstNameIndex - 1; i > 0; i--) {
+      if (firstNames.has(nameParts[i].toLowerCase())) {
+        lastFirstNameIndex = i;
+        i--;
+      } else break;
+    }
     const name = toTitleCase(
-      [...nameParts.splice(nameParts.length - 1), ...nameParts].join(" "),
-    )
+      [...nameParts.splice(lastFirstNameIndex), ...nameParts].join(" "),
+    );
+    const normalizedName = name
       .replaceAll(/a['´ʹ']/g, "à")
       .replaceAll(/e['´ʹ']/g, "è")
       .replaceAll(/i['´ʹ']/g, "ì")
@@ -300,7 +326,7 @@ function parseRowData(rowItems, weightClass) {
 
     return {
       Place: place,
-      Name: name,
+      Name: normalizedName,
       Team: team,
       Sex: "M",
       Event: "SBD",
