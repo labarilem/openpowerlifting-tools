@@ -1,5 +1,6 @@
 {
   "name": "openpowerlifting-tools",
+  "type": "module",
   "scripts": {
     "dev": "node src/index.js",
     "cut": "node src/cut.js",

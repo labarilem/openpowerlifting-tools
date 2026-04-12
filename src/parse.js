@@ -1,8 +1,9 @@
-const fs = require("fs");
-const path = require("path");
-const pdfjs = require("pdfjs-dist");
-const { teamNames } = require("./team-names");
-const { firstNames } = require("./first-names");
+import fs from "fs";
+import path from "path";
+import pdfjs from "pdfjs-dist";
+import { teamNames } from "./lib/team-names.js";
+import { normalizeFullName } from "./lib/names.js";
+import { toTitleCase } from "./lib/format.js";
 
 /**
  * Extract red rectangles from operator list (PDF coords)
@@ -269,26 +270,7 @@ function parseRowData(rowItems, weightClass) {
     let place = rowItems[0].text.replace("°", "");
     if (place === "FG") place = "DQ";
 
-    // Reverse name/surname order (space-separated)
-    // Handle various apostrophe characters (', ´, ʹ, ')
-    /** @type Array<string> */
-    const nameParts = rowItems[1].text.split(/\s+/);
-    let lastFirstNameIndex = nameParts.length - 1;
-    for (let i = lastFirstNameIndex - 1; i > 0; i--) {
-      if (firstNames.has(nameParts[i].toLowerCase())) {
-        lastFirstNameIndex = i;
-        i--;
-      } else break;
-    }
-    const name = toTitleCase(
-      [...nameParts.splice(lastFirstNameIndex), ...nameParts].join(" "),
-    );
-    const normalizedName = name
-      .replaceAll(/a['´ʹ']/g, "à")
-      .replaceAll(/e['´ʹ']/g, "è")
-      .replaceAll(/i['´ʹ']/g, "ì")
-      .replaceAll(/o['´ʹ']/g, "ò")
-      .replaceAll(/u['´ʹ']/g, "ù");
+    const normalizedName = normalizeFullName(rowItems[1].text);
 
     const team =
       teamNames.get(rowItems[2].text.toLowerCase()) ||
@@ -351,7 +333,7 @@ function parseRowData(rowItems, weightClass) {
       TotalKg: lifts[12] || "",
     };
   } catch (error) {
-    console.log("Error parsing row:", error.message);
+    console.log("Error parsing row", error);
     return null;
   }
 }
@@ -366,15 +348,6 @@ function parseWeightClass(weightClass) {
   const match = weightClass.match(/[-+]?(\d+)/);
   const overCategory = weightClass.startsWith("+") ? "+" : "";
   return match ? match[1] + overCategory : "";
-}
-
-function toTitleCase(str) {
-  if (!str) return "";
-  return str
-    .toLowerCase()
-    .split(/\s+/)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
 }
 
 function entriesToCsv(entries) {
@@ -433,7 +406,7 @@ function entriesToCsv(entries) {
 }
 
 async function main() {
-  const examplesDir = path.join(__dirname, "..", "examples", "1");
+  const examplesDir = path.join("./examples", "1");
   const pdfPath = path.join(examplesDir, "input-cut.pdf");
   const outputPath = path.join(examplesDir, "entries-parsed.csv");
 
@@ -454,8 +427,4 @@ async function main() {
   }
 }
 
-if (require.main === module) {
-  main();
-}
-
-module.exports = { parsePdfStructural, entriesToCsv };
+main();
