@@ -3,7 +3,8 @@
   "scripts": {
     "dev": "node src/index.js",
     "cut": "node src/cut.js",
-    "parse": "node src/parse.js"
+    "parse": "node src/parse.js",
+    "parse2": "node src/parse2.js"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",

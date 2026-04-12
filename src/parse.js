@@ -1,10 +1,119 @@
 const fs = require("fs");
 const path = require("path");
 const pdfjs = require("pdfjs-dist");
+const { teamNames } = require("./team-names");
 
 /**
- * Parse powerlifting competition PDF using structural approach
- * Reads text elements in order from PDF and groups them into rows
+ * Extract red rectangles from operator list, transforming to viewport coords
+ * Tracks CTM (Current Transformation Matrix) through save/restore/transform ops
+ */
+function extractRedRectangles(opList, pdfjs, viewport) {
+  const { fnArray, argsArray } = opList;
+  const OPS = pdfjs.OPS;
+  const Util = pdfjs.Util;
+
+  const rects = [];
+  let currentColor = null;
+  let ctm = [1, 0, 0, 1, 0, 0]; // Current Transformation Matrix (identity)
+  const ctmStack = []; // Stack for save/restore
+
+  for (let i = 0; i < fnArray.length; i++) {
+    const fn = fnArray[i];
+    const args = argsArray[i];
+
+    // Track transformation operators
+    if (fn === OPS.save) {
+      ctmStack.push(ctm.slice());
+    } else if (fn === OPS.restore) {
+      if (ctmStack.length > 0) {
+        ctm = ctmStack.pop();
+      }
+    } else if (fn === OPS.transform) {
+      ctm = Util.transform(ctm, args);
+    } else if (fn === OPS.setFillRGBColor) {
+      currentColor = args;
+    } else if (fn === OPS.constructPath) {
+      const [ops, coords] = args;
+
+      for (let j = 0; j < ops.length; j++) {
+        if (ops[j] === OPS.rectangle) {
+          if (isRed(currentColor)) {
+            const x0 = coords[j * 4];
+            const y0 = coords[j * 4 + 1];
+            const w = coords[j * 4 + 2];
+            const h = coords[j * 4 + 3];
+
+            // Transform rectangle corners by CTM, then viewport
+            // This handles rotation, scaling, and translation
+            const corners = [
+              [x0, y0],
+              [x0 + w, y0],
+              [x0, y0 + h],
+              [x0 + w, y0 + h],
+            ];
+
+            const transformedCorners = corners.map((corner) => {
+              const ctmTransformed = Util.applyTransform(corner, ctm);
+              return Util.applyTransform(ctmTransformed, viewport.transform);
+            });
+
+            // Find bounding box of transformed corners
+            const xs = transformedCorners.map((c) => c[0]);
+            const ys = transformedCorners.map((c) => c[1]);
+            const minX = Math.min(...xs);
+            const maxX = Math.max(...xs);
+            const minY = Math.min(...ys);
+            const maxY = Math.max(...ys);
+
+            rects.push({
+              x: minX,
+              y: minY,
+              w: maxX - minX,
+              h: maxY - minY,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return dedupeRects(rects);
+}
+
+function isRed(color) {
+  if (!color) return false;
+  return color.join(",") === "255,0,0";
+}
+
+function dedupeRects(rects) {
+  const seen = new Set();
+  const result = [];
+
+  for (const r of rects) {
+    const key = `${r.x}|${r.y}|${r.w}|${r.h}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(r);
+      console.log(r);
+    }
+  }
+
+  return result;
+}
+
+function isInAnyRectangle(textX, textY, rects) {
+  return rects.some((rect) => {
+    return (
+      textX >= rect.x &&
+      textX <= rect.x + rect.w &&
+      textY >= rect.y &&
+      textY <= rect.y + rect.h
+    );
+  });
+}
+
+/**
+ * Parse PDF
  */
 async function parsePdfStructural(pdfPath) {
   try {
@@ -14,17 +123,23 @@ async function parsePdfStructural(pdfPath) {
 
     const allItems = [];
 
-    // Extract text from all pages, preserving invalid lift info
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1 });
+
+      // 👉 extract rectangles (transformed to viewport space)
+      const opList = await page.getOperatorList();
+      const redRects = extractRedRectangles(opList, pdfjs, viewport);
+
       const content = await page.getTextContent();
 
-      // Collect text items with invalid lift detection based on red rectangles
       for (const item of content.items) {
         if (item.str && item.str.trim().length > 0) {
           const textX = item.transform[4];
           const textY = item.transform[5];
-          const isInvalidLift = // isInRedRectangle(textX, textY);
+
+          const isInvalidLift = isInAnyRectangle(textX, textY, redRects);
+          // console.log({ text: item.str, transform: item.transform });
 
           allItems.push({
             text: item.str.trim(),
@@ -37,7 +152,6 @@ async function parsePdfStructural(pdfPath) {
 
     console.log(`Extracted ${allItems.length} text items from PDF`);
 
-    // Expected column headers in order
     const headers = [
       "POS",
       "ATLETA",
@@ -65,31 +179,24 @@ async function parsePdfStructural(pdfPath) {
     let currentWeightClass = "";
     let i = 0;
 
-    // Skip title and header
     while (i < allItems.length && !headers.includes(allItems[i].text)) {
       i++;
     }
 
-    // Skip header row
     i += headers.length;
 
-    // Parse rows
     while (i < allItems.length) {
       const item = allItems[i].text;
 
-      // Check for weight class markers
       if (/^[-+]\d+$/.test(item)) {
         currentWeightClass = item;
         i++;
         continue;
       }
 
-      // Check if this is a data row (starts with position)
       if (/^(FG|DQ|\d+°)$/.test(item)) {
         const row = readRow(allItems, i, headers.length, currentWeightClass);
-        if (row.entry) {
-          entries.push(row.entry);
-        }
+        if (row.entry) entries.push(row.entry);
         i = row.nextIndex;
       } else {
         i++;
@@ -104,12 +211,11 @@ async function parsePdfStructural(pdfPath) {
 }
 
 /**
- * Read a single row of data from items array
+ * Read row
  */
 function readRow(items, startIndex, expectedFieldCount, weightClass) {
   const rowItems = [];
 
-  // Collect items for this row
   let i = startIndex;
   const position = items[startIndex].text;
   const isDQ = position === "DQ";
@@ -118,75 +224,68 @@ function readRow(items, startIndex, expectedFieldCount, weightClass) {
   while (i < items.length) {
     const item = items[i].text;
 
-    // Stop if we hit a new weight class
-    if (/^[-+]\d+$/.test(item)) {
-      break;
-    }
-
-    // Stop if we hit a new position marker (next row)
-    if (i > startIndex && /^(FG|DQ|\d+°)$/.test(item)) {
-      break;
-    }
+    if (/^[-+]\d+$/.test(item)) break;
+    if (i > startIndex && /^(FG|DQ|\d+°)$/.test(item)) break;
 
     rowItems.push(items[i]);
     i++;
 
-    // For DQ/FG entries, collect up to 20 items
-    // For normal entries, collect all expected fields
     if (rowItems.length >= (isDQ || isFG ? 20 : expectedFieldCount)) {
       break;
     }
   }
 
-  const entry = parseRowData(rowItems, weightClass);
-
   return {
-    entry: entry,
+    entry: parseRowData(rowItems, weightClass),
     nextIndex: i,
   };
 }
 
 /**
- * Parse row data into entry object
+ * Parse row data
  */
 function parseRowData(rowItems, weightClass) {
   try {
-    if (rowItems.length < 6) {
-      return null;
-    }
+    if (rowItems.length < 6) return null;
 
     let place = rowItems[0].text.replace("°", "");
-    // Convert FG to DQ for output
-    if (place === "FG") {
-      place = "DQ";
-    }
-    const name = toTitleCase(rowItems[1].text);
-    const team = toTitleCase(rowItems[2].text);
+    if (place === "FG") place = "DQ";
+
+    // Reverse name/surname order (space-separated)
+    // Handle various apostrophe characters (', ´, ʹ, ')
+    /** @type Array<string> */
+    const nameParts = rowItems[1].text.split(/\s+/);
+    const name = toTitleCase(
+      [...nameParts.splice(nameParts.length - 1), ...nameParts].join(" "),
+    )
+      .replaceAll(/a['´ʹ']/g, "à")
+      .replaceAll(/e['´ʹ']/g, "è")
+      .replaceAll(/i['´ʹ']/g, "ì")
+      .replaceAll(/o['´ʹ']/g, "ò")
+      .replaceAll(/u['´ʹ']/g, "ù");
+
+    const team =
+      teamNames.get(rowItems[2].text.toLowerCase()) ||
+      toTitleCase(rowItems[2].text);
     const birthYear = rowItems[3].text;
     const bodyweightStr = rowItems[4].text;
     const division = rowItems[5].text;
 
-    // Parse bodyweight
     const bodyweightKg = parseFloat(bodyweightStr.replace(",", "."));
 
-    // Parse lift numbers starting from index 6
     const isDQ = place === "DQ";
     const isFG = place === "DQ";
 
     const lifts = [];
+
     for (let j = 6; j < rowItems.length; j++) {
       const itemObj = rowItems[j];
       const item = itemObj.text;
 
-      // Stop on non-numeric or special markers
-      if (/^(FG|DQ|Sub-Junior|Senior|Master)$/i.test(item)) {
-        break;
-      }
+      if (/^(FG|DQ|Sub-Junior|Senior|Master)$/i.test(item)) break;
 
-      // Try to parse as number
       if (/^\d+[.,]\d+$|^\d+$/.test(item)) {
         let num = parseFloat(item.replace(",", "."));
-        // If marked as in red rectangle (invalid), prefix with negative to indicate failed lift
         if (itemObj.isInvalidLift && num > 0) {
           num = -num;
         }
@@ -194,19 +293,12 @@ function parseRowData(rowItems, weightClass) {
       }
     }
 
-    // For DQ/FG entries, allow fewer lift values (they may be incomplete)
-    // For normal entries, we need: sq1-3, bsq, bench1-3, bbench, deadlift1-3, bdeadlift, total = 13 values
     const minLifts = isDQ || isFG ? 0 : 13;
-    if (lifts.length < minLifts) {
-      return null;
-    }
+    if (lifts.length < minLifts) return null;
 
-    // Pad lifts array to expected length for consistent output
-    while (lifts.length < 14) {
-      lifts.push("");
-    }
+    while (lifts.length < 14) lifts.push("");
 
-    const entry = {
+    return {
       Place: place,
       Name: name,
       Team: team,
@@ -217,7 +309,7 @@ function parseRowData(rowItems, weightClass) {
       Equipment: "Raw",
       BirthDate: "",
       BirthYear: birthYear,
-      BodyweightKg: bodyweightKg,
+      BodyweightKg: bodyweightKg.toFixed(2),
       Squat1Kg: lifts[0] || "",
       Squat2Kg: lifts[1] || "",
       Squat3Kg: lifts[2] || "",
@@ -232,8 +324,6 @@ function parseRowData(rowItems, weightClass) {
       Best3DeadliftKg: lifts[11] || "",
       TotalKg: lifts[12] || "",
     };
-
-    return entry;
   } catch (error) {
     console.log("Error parsing row:", error.message);
     return null;
@@ -241,29 +331,26 @@ function parseRowData(rowItems, weightClass) {
 }
 
 /**
- * Parse weight class from string like "-59" or "+120"
+ * parseWeightClass
+ * @param {string} weightClass
+ * @returns string
  */
 function parseWeightClass(weightClass) {
   if (!weightClass) return "";
   const match = weightClass.match(/[-+]?(\d+)/);
-  return match ? parseFloat(match[1]) : "";
+  const overCategory = weightClass.startsWith("+") ? "+" : "";
+  return match ? match[1] + overCategory : "";
 }
 
-/**
- * Convert string to Title Case (capitalize each word)
- */
 function toTitleCase(str) {
   if (!str) return "";
   return str
     .toLowerCase()
     .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
 
-/**
- * Convert entries array to CSV format
- */
 function entriesToCsv(entries) {
   const headers = [
     "Place",
@@ -292,67 +379,44 @@ function entriesToCsv(entries) {
     "TotalKg",
   ];
 
-  const csvLines = [headers.join(",")];
+  const csvDataLines = [];
 
   for (const entry of entries) {
     const row = headers.map((header) => {
       const value = entry[header];
-      if (value === "" || value === null || value === undefined) return "";
-      // Format numeric columns with specific decimal places
+      if (value === "" || value == null) return "";
+
       if (typeof value === "number") {
-        if (header === "BodyweightKg") {
-          return value.toFixed(2);
-        }
-        // Lift columns: 1 decimal place
-        if (
-          [
-            "Squat1Kg",
-            "Squat2Kg",
-            "Squat3Kg",
-            "Best3SquatKg",
-            "Bench1Kg",
-            "Bench2Kg",
-            "Bench3Kg",
-            "Best3BenchKg",
-            "Deadlift1Kg",
-            "Deadlift2Kg",
-            "Deadlift3Kg",
-            "Best3DeadliftKg",
-            "TotalKg",
-          ].includes(header)
-        ) {
-          return value.toFixed(1);
-        }
+        if (header === "BodyweightKg") return value.toFixed(2);
+        return value.toFixed(1);
       }
+
       if (typeof value === "string" && value.includes(",")) {
         return `"${value.replace(/"/g, '""')}"`;
       }
+
       return value;
     });
-    csvLines.push(row.join(","));
+
+    csvDataLines.push(row.join(","));
   }
 
-  return csvLines.join("\n");
+  csvDataLines.sort();
+
+  return [headers.join(","), ...csvDataLines].join("\n");
 }
 
-/**
- * Main execution
- */
 async function main() {
   const examplesDir = path.join(__dirname, "..", "examples", "1");
   const pdfPath = path.join(examplesDir, "input-cut.pdf");
   const outputPath = path.join(examplesDir, "entries-parsed.csv");
 
   try {
-    console.log("Parsing PDF (structural approach):", pdfPath);
+    console.log("Parsing PDF:", pdfPath);
     const entries = await parsePdfStructural(pdfPath);
 
     console.log(`Extracted ${entries.length} entries\n`);
-
-    // Show first few entries
-    if (entries.length > 0) {
-      console.log("First entry:", entries[0]);
-    }
+    if (entries.length > 0) console.log("First entry:", entries[0]);
 
     const csv = entriesToCsv(entries);
     fs.writeFileSync(outputPath, csv, "utf-8");
