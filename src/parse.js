@@ -4,7 +4,6 @@ import pdfjs from "pdfjs-dist";
 import { toTitleCase } from "./lib/format.js";
 import { normalizeFullName } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
-import { teamNames } from "./lib/team-names.js";
 
 /** Lift slots: SQ1–3, BSQ, PA1–3, BPA, ST1–3, BST, TOT — red negation only on attempts. */
 const NO_NEGATE_LIFT_SLOTS = new Set([3, 7, 11, 12]);
@@ -82,7 +81,12 @@ function liftFieldMaxXFromHeader(fullHeaderRow) {
  * @param {number} pageWidth PDF viewport width (scale 1)
  * @returns {(number|string)[]}
  */
-function assignLiftsByCoordinates(rowItems, columnCenters, liftFieldMaxX, pageWidth) {
+function assignLiftsByCoordinates(
+  rowItems,
+  columnCenters,
+  liftFieldMaxX,
+  pageWidth,
+) {
   const lifts = Array(LIFT_SLOT_COUNT).fill("");
 
   const assign = (col, wrapped) => {
@@ -133,7 +137,10 @@ function assignLiftsByCoordinates(rowItems, columnCenters, liftFieldMaxX, pageWi
       continue;
     }
 
-    const usableRight = Math.min(pageWidth, xAfterDivision + (pageWidth - xAfterDivision) * 0.98);
+    const usableRight = Math.min(
+      pageWidth,
+      xAfterDivision + (pageWidth - xAfterDivision) * 0.98,
+    );
     const liftSpan = Math.max(usableRight - xAfterDivision, 1e-6);
     const colW = liftSpan / LIFT_SLOT_COUNT;
     const col = Math.min(
@@ -262,62 +269,59 @@ function parseLiftCell(itemObj, slotIndex) {
  * @param {number | null} liftFieldMaxX exclude IPF column (see liftFieldMaxXFromHeader)
  * @param {number} pageWidth PDF page width (viewport scale 1) for equal-width fallback
  */
-function parseRowData(rowItems, weightClass, liftColumnCenters, liftFieldMaxX, pageWidth) {
-  try {
-    if (rowItems.length < 6) return null;
+function parseRowData(
+  rowItems,
+  weightClass,
+  liftColumnCenters,
+  liftFieldMaxX,
+  pageWidth,
+) {
+  if (rowItems.length < 6) return null;
 
-    let place = rowItems[0].text.replace("°", "");
-    if (place === "FG") place = "DQ";
+  let place = rowItems[0].text.replace("°", "");
+  if (place === "FG") place = "DQ";
 
-    const normalizedName = normalizeFullName(rowItems[1].text);
-    const team =
-      teamNames.get(rowItems[2].text.toLowerCase()) ||
-      toTitleCase(rowItems[2].text);
-    const birthYear = rowItems[3].text;
-    const bodyweightStr = rowItems[4].text;
-    const division = rowItems[5].text;
+  const normalizedName = normalizeFullName(rowItems[1].text);
+  const birthYear = rowItems[3].text;
+  const bodyweightStr = rowItems[4].text;
+  const division = rowItems[5].text;
 
-    const bodyweightKg = parseFloat(bodyweightStr.replace(",", "."));
+  const bodyweightKg = parseFloat(bodyweightStr.replace(",", "."));
 
-    const lifts = assignLiftsByCoordinates(
-      rowItems,
-      liftColumnCenters,
-      liftFieldMaxX,
-      pageWidth,
-    );
+  const lifts = assignLiftsByCoordinates(
+    rowItems,
+    liftColumnCenters,
+    liftFieldMaxX,
+    pageWidth,
+  );
 
-    while (lifts.length < 14) lifts.push("");
+  while (lifts.length < 14) lifts.push("");
 
-    return {
-      Place: place,
-      Name: normalizedName,
-      Team: team,
-      Sex: "M",
-      Event: "SBD",
-      Division: division || "Sub-Junior",
-      WeightClassKg: parseWeightClass(weightClass),
-      Equipment: "Raw",
-      BirthDate: "",
-      BirthYear: birthYear,
-      BodyweightKg: bodyweightKg,
-      Squat1Kg: lifts[0] || "",
-      Squat2Kg: lifts[1] || "",
-      Squat3Kg: lifts[2] || "",
-      Best3SquatKg: lifts[3] || "",
-      Bench1Kg: lifts[4] || "",
-      Bench2Kg: lifts[5] || "",
-      Bench3Kg: lifts[6] || "",
-      Best3BenchKg: lifts[7] || "",
-      Deadlift1Kg: lifts[8] || "",
-      Deadlift2Kg: lifts[9] || "",
-      Deadlift3Kg: lifts[10] || "",
-      Best3DeadliftKg: lifts[11] || "",
-      TotalKg: lifts[12] || "",
-    };
-  } catch (error) {
-    console.log("Error parsing row", error);
-    return null;
-  }
+  return {
+    Place: place,
+    Name: normalizedName,
+    Sex: "M",
+    Event: "SBD",
+    Division: division || "Sub-Junior",
+    WeightClassKg: parseWeightClass(weightClass),
+    Equipment: "Raw",
+    BirthDate: "",
+    BirthYear: birthYear,
+    BodyweightKg: bodyweightKg,
+    Squat1Kg: lifts[0] || "",
+    Squat2Kg: lifts[1] || "",
+    Squat3Kg: lifts[2] || "",
+    Best3SquatKg: lifts[3] || "",
+    Bench1Kg: lifts[4] || "",
+    Bench2Kg: lifts[5] || "",
+    Bench3Kg: lifts[6] || "",
+    Best3BenchKg: lifts[7] || "",
+    Deadlift1Kg: lifts[8] || "",
+    Deadlift2Kg: lifts[9] || "",
+    Deadlift3Kg: lifts[10] || "",
+    Best3DeadliftKg: lifts[11] || "",
+    TotalKg: lifts[12] || "",
+  };
 }
 
 /**
@@ -360,128 +364,126 @@ function parseRow(
 /**
  * Parse PDF
  */
-async function parsePdf(pdfPath) {
-  try {
-    const pdfBuffer = fs.readFileSync(pdfPath);
-    const uint8Array = new Uint8Array(pdfBuffer);
-    const pdf = await pdfjs.getDocument({ data: uint8Array }).promise;
+async function parseEntriesFromFiplPdf(pdfPath) {
+  const pdfBuffer = fs.readFileSync(pdfPath);
+  const uint8Array = new Uint8Array(pdfBuffer);
+  const pdf = await pdfjs.getDocument({ data: uint8Array }).promise;
 
-    const page1 = await pdf.getPage(1);
-    const pageWidth = page1.getViewport({ scale: 1 }).width;
+  const page1 = await pdf.getPage(1);
+  const pageWidth = page1.getViewport({ scale: 1 }).width;
 
-    const allItems = [];
+  const allItems = [];
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
 
-      // Extract red rectangles in PDF coordinate space
-      const opList = await page.getOperatorList();
-      const redRects = extractRedRectangles(opList, pdfjs);
+    // Extract red rectangles in PDF coordinate space
+    const opList = await page.getOperatorList();
+    const redRects = extractRedRectangles(opList, pdfjs);
 
-      const content = await page.getTextContent();
+    const content = await page.getTextContent();
 
-      for (const item of content.items) {
-        if (item.str && item.str.trim().length > 0) {
-          const textX = item.transform[4];
-          const textY = item.transform[5];
-          const textWidth = item.width || 0;
-          const textHeight = item.height || 0;
+    for (const item of content.items) {
+      if (item.str && item.str.trim().length > 0) {
+        const textX = item.transform[4];
+        const textY = item.transform[5];
+        const textWidth = item.width || 0;
+        const textHeight = item.height || 0;
 
-          const isInvalidLift = isInAnyRectangle(
-            textX,
-            textY,
-            textWidth,
-            textHeight,
-            redRects,
-          );
-
-          allItems.push({
-            text: item.str.trim(),
-            isInvalidLift,
-            textItem: item,
-          });
-        }
-      }
-    }
-
-    console.log(`Extracted ${allItems.length} text items from PDF`);
-
-    const headers = [
-      "POS",
-      "ATLETA",
-      "SOCIETÀ",
-      "A.N.",
-      "PESO",
-      "CAT. ETÀ",
-      "SQ1",
-      "SQ2",
-      "SQ3",
-      "BSQ",
-      "PA1",
-      "PA2",
-      "PA3",
-      "BPA",
-      "ST1",
-      "ST2",
-      "ST3",
-      "BST",
-      "TOT",
-      "IPF POINTS",
-    ];
-
-    const entries = [];
-    let currentWeightClass = "";
-
-    let headerStart = 0;
-    while (headerStart < allItems.length && !headers.includes(allItems[headerStart].text)) {
-      headerStart++;
-    }
-
-    const fullHeaderRow = allItems.slice(headerStart, headerStart + headers.length);
-    const liftColumnCenters = liftColumnCentersFromHeader(
-      fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
-    );
-    const liftFieldMaxX = liftFieldMaxXFromHeader(fullHeaderRow);
-
-    let i = headerStart + headers.length;
-
-    while (i < allItems.length) {
-      const item = allItems[i].text;
-
-      if (/^[-+]\d+$/.test(item)) {
-        currentWeightClass = item;
-        i++;
-        continue;
-      }
-
-      if (/^(FG|DQ|\d+°)$/.test(item)) {
-        const row = parseRow(
-          allItems,
-          i,
-          currentWeightClass,
-          liftColumnCenters,
-          liftFieldMaxX,
-          pageWidth,
+        const isInvalidLift = isInAnyRectangle(
+          textX,
+          textY,
+          textWidth,
+          textHeight,
+          redRects,
         );
-        if (row.entry) entries.push(row.entry);
-        i = row.nextIndex;
-      } else {
-        i++;
+
+        allItems.push({
+          text: item.str.trim(),
+          isInvalidLift,
+          textItem: item,
+        });
       }
     }
-
-    return entries;
-  } catch (error) {
-    console.error("Error parsing PDF:", error);
-    throw error;
   }
+
+  const headers = [
+    "POS",
+    "ATLETA",
+    "SOCIETÀ",
+    "A.N.",
+    "PESO",
+    "CAT. ETÀ",
+    "SQ1",
+    "SQ2",
+    "SQ3",
+    "BSQ",
+    "PA1",
+    "PA2",
+    "PA3",
+    "BPA",
+    "ST1",
+    "ST2",
+    "ST3",
+    "BST",
+    "TOT",
+    "IPF POINTS",
+  ];
+
+  const entries = [];
+  let currentWeightClass = "";
+
+  let headerStart = 0;
+  while (
+    headerStart < allItems.length &&
+    !headers.includes(allItems[headerStart].text)
+  ) {
+    headerStart++;
+  }
+
+  const fullHeaderRow = allItems.slice(
+    headerStart,
+    headerStart + headers.length,
+  );
+  const liftColumnCenters = liftColumnCentersFromHeader(
+    fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
+  );
+  const liftFieldMaxX = liftFieldMaxXFromHeader(fullHeaderRow);
+
+  let i = headerStart + headers.length;
+
+  while (i < allItems.length) {
+    const item = allItems[i].text;
+
+    if (/^[-+]\d+$/.test(item)) {
+      currentWeightClass = item;
+      i++;
+      continue;
+    }
+
+    if (/^(FG|DQ|\d+°)$/.test(item)) {
+      const row = parseRow(
+        allItems,
+        i,
+        currentWeightClass,
+        liftColumnCenters,
+        liftFieldMaxX,
+        pageWidth,
+      );
+      if (row.entry) entries.push(row.entry);
+      i = row.nextIndex;
+    } else {
+      i++;
+    }
+  }
+
+  return entries;
 }
 
-function entriesToCsv(entries, options = { sort: true }) {
+function entriesToOplCsv(entries, options = { sort: true }) {
   const headers = [
     "Place",
     "Name",
-    "Team",
     "Sex",
     "Event",
     "Division",
@@ -512,6 +514,7 @@ function entriesToCsv(entries, options = { sort: true }) {
       const value = entry[header];
       if (value === "" || value == null) return "";
 
+      // format numbers
       if (typeof value === "number") {
         if (header === "BodyweightKg") return value.toFixed(2);
         return value.toFixed(1);
@@ -527,22 +530,8 @@ function entriesToCsv(entries, options = { sort: true }) {
   return [headers.join(","), ...csvDataLines].join("\n") + "\n";
 }
 
-async function main() {
-  const examplesDir = path.join("./examples", "1");
-  const pdfPath = path.join(examplesDir, "input-cut.pdf");
-  const outputPath = path.join(examplesDir, "entries-parsed.csv");
-
-  try {
-    console.log("Parsing PDF:", pdfPath);
-    const entries = await parsePdf(pdfPath);
-    console.log(`Extracted ${entries.length} entries`);
-    const csv = entriesToCsv(entries);
-    fs.writeFileSync(outputPath, csv, "utf-8");
-    console.log(`CSV saved to: ${outputPath}`);
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
-  }
+export async function convertFiplPdfToOplCsv(pdfPath, outputPath) {
+  const parsedEntries = await parseEntriesFromFiplPdf(pdfPath);
+  const csv = entriesToOplCsv(parsedEntries);
+  fs.writeFileSync(outputPath, csv, "utf-8");
 }
-
-main();
