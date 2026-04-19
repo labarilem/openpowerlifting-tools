@@ -2,7 +2,7 @@
   "name": "openpowerlifting-tools",
   "type": "module",
   "scripts": {
-    "cut": "node src/cut.js",
+    "import": "node scripts/import-meet.js",
     "parse": "node src/parse.js",
     "test": "node --test tests/parseDataset.js"
   },

@@ -1,5 +1,5 @@
 export function getInputPdfPath(meetId) {
-  return `./tests/dataset/fipl/${meetId}/input-cut.pdf`;
+  return `./tests/dataset/fipl/${meetId}/input.pdf`;
 }
 
 export function getOutputCsvPath(meetId) {

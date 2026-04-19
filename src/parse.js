@@ -376,12 +376,18 @@ async function parseEntriesFromFiplPdf(pdfPath) {
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent();
+
+    const hasClassificationTable = content.items.some((item) =>
+      item.str && item.str.includes("CLASSIFICA CAT."),
+    );
+    if (!hasClassificationTable) {
+      continue;
+    }
 
     // Extract red rectangles in PDF coordinate space
     const opList = await page.getOperatorList();
     const redRects = extractRedRectangles(opList, pdfjs);
-
-    const content = await page.getTextContent();
 
     for (const item of content.items) {
       if (item.str && item.str.trim().length > 0) {
