@@ -51,30 +51,35 @@ function textItemXLeft(wrapped) {
 }
 
 /**
- * Calibrate lift columns from the header row: one x-center per SQ1…TOT cell.
+ * Calibrate lift columns from the header row.
+ * Returns a sparse array of length LIFT_SLOT_COUNT with center x values
+ * only for slots present in this meet type.
  * @param {Array<{ textItem: import("pdfjs-dist").TextItem }>} headerItemsSlice
- * @returns {number[] | null}
+ * @param {number[]} slotOrder
+ * @returns {Array<number | null> | null}
  */
-function liftColumnCentersFromHeader(headerItemsSlice) {
-  if (headerItemsSlice.length < LIFT_SLOT_COUNT) return null;
-  const centers = [];
-  for (let i = 0; i < LIFT_SLOT_COUNT; i++) {
+function liftColumnCentersFromHeader(headerItemsSlice, slotOrder) {
+  if (headerItemsSlice.length < slotOrder.length) return null;
+  const centers = Array(LIFT_SLOT_COUNT).fill(null);
+  for (let i = 0; i < slotOrder.length; i++) {
     const w = headerItemsSlice[i];
     if (!w?.textItem) return null;
-    centers.push(textItemXCenter(w));
+    centers[slotOrder[i]] = textItemXCenter(w);
   }
   return centers;
 }
 
 /**
  * X midpoint between the TOT and IPF header cells — text to the right is not a lift field.
- * @param {Array<{ textItem: import("pdfjs-dist").TextItem }>} fullHeaderRow 20 items POS…IPF POINTS
+ * @param {Array<{ textItem: import("pdfjs-dist").TextItem }>} fullHeaderRow
+ * @param {number} totIndex
+ * @param {number} ipfIndex
  * @returns {number | null}
  */
-function liftFieldMaxXFromHeader(fullHeaderRow) {
-  if (fullHeaderRow.length < 20) return null;
-  const tot = fullHeaderRow[18];
-  const ipf = fullHeaderRow[19];
+function liftFieldMaxXFromHeader(fullHeaderRow, totIndex = 18, ipfIndex = 19) {
+  if (fullHeaderRow.length <= Math.max(totIndex, ipfIndex)) return null;
+  const tot = fullHeaderRow[totIndex];
+  const ipf = fullHeaderRow[ipfIndex];
   if (!tot?.textItem || !ipf?.textItem) return null;
   return (textItemXRight(tot) + textItemXLeft(ipf)) / 2;
 }
@@ -141,12 +146,14 @@ function assignLiftsByCoordinates(
       let bestCol = 0;
       let bestDist = Infinity;
       for (let k = 0; k < LIFT_SLOT_COUNT; k++) {
+        if (!Number.isFinite(centers[k])) continue;
         const d = Math.abs(cx - centers[k]);
         if (d < bestDist) {
           bestDist = d;
           bestCol = k;
         }
       }
+      if (bestDist === Infinity) continue;
       assign(bestCol, it);
       continue;
     }
@@ -534,12 +541,17 @@ async function parseEntriesFromFiplPdf(pdfPath, meetType = "complete") {
   );
   const liftColumnCenters =
     meetType === "bench"
-      ? null
+      ? liftColumnCentersFromHeader(fullHeaderRow.slice(6, 11), [
+          4, 5, 6, 7, 12,
+        ])
       : liftColumnCentersFromHeader(
           fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
+          COMPLETE_ROW_LIFT_SLOTS,
         );
   const liftFieldMaxX =
-    meetType === "bench" ? null : liftFieldMaxXFromHeader(fullHeaderRow);
+    meetType === "bench"
+      ? liftFieldMaxXFromHeader(fullHeaderRow, 10, 11)
+      : liftFieldMaxXFromHeader(fullHeaderRow);
 
   let i = headerStart + headers.length;
 

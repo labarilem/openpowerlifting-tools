@@ -36,6 +36,7 @@ export function normalizeFullName(rawName) {
     .replaceAll(/e['´ʹ']/g, "è")
     .replaceAll(/i['´ʹ']/g, "ì")
     .replaceAll(/o['´ʹ']/g, "ò")
-    .replaceAll(/u['´ʹ']/g, "ù");
+    .replaceAll(/u['´ʹ']/g, "ù")
+    .replaceAll(/'([a-z])/g, (_, letter) => `'${letter.toUpperCase()}`);
   return normalizedName;
 }

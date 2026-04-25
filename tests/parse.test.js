@@ -23,7 +23,7 @@ describe("FIPL", () => {
     );
   });
 
-  test.only("2604", async () => {
+  test("2604", async () => {
     const meetId = "2604";
     await convertFiplPdfToOplCsv(
       getInputPdfPath(meetId),
