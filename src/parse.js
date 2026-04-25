@@ -1,15 +1,22 @@
 import fs from "fs";
-import path from "path";
 import pdfjs from "pdfjs-dist";
-import { toTitleCase } from "./lib/format.js";
 import { normalizeFullName } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
+
+const CATEGORY_START_REGEX = /^[-+]\d+/;
 
 /** Lift slots: SQ1–3, BSQ, PA1–3, BPA, ST1–3, BST, TOT — red negation only on attempts. */
 const NO_NEGATE_LIFT_SLOTS = new Set([3, 7, 11, 12]);
 
 /** Lift slots: SQ1–3, BSQ, PA1–3, BPA, ST1–3, BST, TOT (IPF column ignored). */
 const LIFT_SLOT_COUNT = 13;
+const BENCH_ROW_LIFT_SLOTS = [4, 5, 6, 7, 12];
+const COMPLETE_ROW_LIFT_SLOTS = Array.from(
+  { length: LIFT_SLOT_COUNT },
+  (_, index) => index,
+);
+const BENCH_ONLY_LIFT_SLOTS = new Set(BENCH_ROW_LIFT_SLOTS);
+const COMPLETE_LIFT_SLOTS = new Set(COMPLETE_ROW_LIFT_SLOTS);
 
 /**
  * Horizontal center of a text run in PDF user space (for column assignment).
@@ -86,11 +93,14 @@ function assignLiftsByCoordinates(
   columnCenters,
   liftFieldMaxX,
   pageWidth,
+  activeLiftSlots = COMPLETE_LIFT_SLOTS,
+  rowLiftSlotOrder = COMPLETE_ROW_LIFT_SLOTS,
 ) {
   const lifts = Array(LIFT_SLOT_COUNT).fill("");
 
   const assign = (col, wrapped) => {
     if (col < 0 || col >= LIFT_SLOT_COUNT) return;
+    if (!activeLiftSlots.has(col)) return;
     const v = parseLiftCell(wrapped, col);
     if (v !== "") lifts[col] = v;
   };
@@ -102,8 +112,12 @@ function assignLiftsByCoordinates(
 
   const div = rowItems[5];
   if (!div?.textItem) {
-    for (let j = 6; j < rowItems.length && j < 6 + LIFT_SLOT_COUNT; j++) {
-      assign(j - 6, rowItems[j]);
+    for (
+      let j = 6;
+      j < rowItems.length && j < 6 + rowLiftSlotOrder.length;
+      j++
+    ) {
+      assign(rowLiftSlotOrder[j - 6], rowItems[j]);
     }
     return lifts;
   }
@@ -142,12 +156,12 @@ function assignLiftsByCoordinates(
       xAfterDivision + (pageWidth - xAfterDivision) * 0.98,
     );
     const liftSpan = Math.max(usableRight - xAfterDivision, 1e-6);
-    const colW = liftSpan / LIFT_SLOT_COUNT;
-    const col = Math.min(
-      LIFT_SLOT_COUNT - 1,
+    const colW = liftSpan / rowLiftSlotOrder.length;
+    const rowCol = Math.min(
+      rowLiftSlotOrder.length - 1,
       Math.max(0, Math.floor((cx - xAfterDivision) / colW)),
     );
-    assign(col, it);
+    assign(rowLiftSlotOrder[rowCol], it);
   }
 
   return lifts;
@@ -275,6 +289,11 @@ function parseRowData(
   liftColumnCenters,
   liftFieldMaxX,
   pageWidth,
+  meetType,
+  sex,
+  equipment,
+  activeLiftSlots,
+  rowLiftSlotOrder,
 ) {
   if (rowItems.length < 6) return null;
 
@@ -287,12 +306,20 @@ function parseRowData(
   const division = rowItems[5].text;
 
   const bodyweightKg = parseFloat(bodyweightStr.replace(",", "."));
+  const hasValidBirthYear = /^\d{4}$/.test(birthYear);
+  const hasValidBodyweight = Number.isFinite(bodyweightKg);
+  const isHeaderLikeDivision = /^(SOCIETÀ|CAT\.\s*ETÀ)$/i.test(division);
+  if (!hasValidBirthYear || !hasValidBodyweight || isHeaderLikeDivision) {
+    return null;
+  }
 
   const lifts = assignLiftsByCoordinates(
     rowItems,
     liftColumnCenters,
     liftFieldMaxX,
     pageWidth,
+    activeLiftSlots,
+    rowLiftSlotOrder,
   );
 
   while (lifts.length < 14) lifts.push("");
@@ -300,11 +327,11 @@ function parseRowData(
   return {
     Place: place,
     Name: normalizedName,
-    Sex: "M",
-    Event: "SBD",
+    Sex: sex,
+    Event: meetType === "bench" ? "B" : "SBD",
     Division: division || "Sub-Junior",
     WeightClassKg: parseWeightClass(weightClass),
-    Equipment: "Raw",
+    Equipment: equipment,
     BirthDate: "",
     BirthYear: birthYear,
     BodyweightKg: bodyweightKg,
@@ -335,6 +362,10 @@ function parseRow(
   liftColumnCenters,
   liftFieldMaxX,
   pageWidth,
+  meetType,
+  equipment,
+  activeLiftSlots,
+  rowLiftSlotOrder,
 ) {
   const rowItems = [];
 
@@ -342,7 +373,7 @@ function parseRow(
   while (i < items.length) {
     const item = items[i].text;
 
-    if (/^[-+]\d+$/.test(item)) break;
+    if (CATEGORY_START_REGEX.test(item)) break;
     if (i > startIndex && /^(FG|DQ|\d+°)$/.test(item)) break;
 
     rowItems.push(items[i]);
@@ -356,6 +387,11 @@ function parseRow(
       liftColumnCenters,
       liftFieldMaxX,
       pageWidth,
+      meetType,
+      rowItems[0]?.sex || "M",
+      equipment,
+      activeLiftSlots,
+      rowLiftSlotOrder,
     ),
     nextIndex: i,
   };
@@ -364,26 +400,54 @@ function parseRow(
 /**
  * Parse PDF
  */
-async function parseEntriesFromFiplPdf(pdfPath) {
+async function parseEntriesFromFiplPdf(pdfPath, meetType = "complete") {
+  if (!["bench", "deadlift", "complete"].includes(meetType)) {
+    throw new Error(
+      `Invalid meetType '${meetType}'. Expected 'bench', 'deadlift', or 'complete'.`,
+    );
+  }
+  if (meetType === "deadlift") {
+    throw new Error("not implemented");
+  }
+
+  const activeLiftSlots =
+    meetType === "bench" ? BENCH_ONLY_LIFT_SLOTS : COMPLETE_LIFT_SLOTS;
+  const rowLiftSlotOrder =
+    meetType === "bench" ? BENCH_ROW_LIFT_SLOTS : COMPLETE_ROW_LIFT_SLOTS;
+
   const pdfBuffer = fs.readFileSync(pdfPath);
   const uint8Array = new Uint8Array(pdfBuffer);
   const pdf = await pdfjs.getDocument({ data: uint8Array }).promise;
 
   const page1 = await pdf.getPage(1);
+  const page1Content = await page1.getTextContent();
   const pageWidth = page1.getViewport({ scale: 1 }).width;
+  const equipment = page1Content.items.some((item) =>
+    /ATTREZZAT/i.test(item.str || ""),
+  )
+    ? "Single-ply"
+    : "Raw";
 
   const allItems = [];
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
+    const pageTexts = content.items
+      .map((item) => item.str || "")
+      .filter((text) => text.trim().length > 0);
 
-    const hasClassificationTable = content.items.some((item) =>
-      item.str && item.str.includes("CLASSIFICA CAT."),
+    const hasClassificationTable = pageTexts.some((text) =>
+      text.includes("CLASSIFICA CAT."),
     );
     if (!hasClassificationTable) {
       continue;
     }
+    const pageSex = pageTexts.some((text) =>
+      text.includes("CLASSIFICA CAT. FEMMINILE"),
+    )
+      ? "F"
+      : "M";
 
     // Extract red rectangles in PDF coordinate space
     const opList = await page.getOperatorList();
@@ -407,34 +471,51 @@ async function parseEntriesFromFiplPdf(pdfPath) {
         allItems.push({
           text: item.str.trim(),
           isInvalidLift,
+          sex: pageSex,
           textItem: item,
         });
       }
     }
   }
 
-  const headers = [
-    "POS",
-    "ATLETA",
-    "SOCIETÀ",
-    "A.N.",
-    "PESO",
-    "CAT. ETÀ",
-    "SQ1",
-    "SQ2",
-    "SQ3",
-    "BSQ",
-    "PA1",
-    "PA2",
-    "PA3",
-    "BPA",
-    "ST1",
-    "ST2",
-    "ST3",
-    "BST",
-    "TOT",
-    "IPF POINTS",
-  ];
+  const headers =
+    meetType === "bench"
+      ? [
+          "POS",
+          "ATLETA",
+          "SOCIETÀ",
+          "A.N.",
+          "PESO",
+          "CAT. ETÀ",
+          "PA1",
+          "PA2",
+          "PA3",
+          "BPA",
+          "TOT",
+          "IPF POINTS",
+        ]
+      : [
+          "POS",
+          "ATLETA",
+          "SOCIETÀ",
+          "A.N.",
+          "PESO",
+          "CAT. ETÀ",
+          "SQ1",
+          "SQ2",
+          "SQ3",
+          "BSQ",
+          "PA1",
+          "PA2",
+          "PA3",
+          "BPA",
+          "ST1",
+          "ST2",
+          "ST3",
+          "BST",
+          "TOT",
+          "IPF POINTS",
+        ];
 
   const entries = [];
   let currentWeightClass = "";
@@ -451,17 +532,21 @@ async function parseEntriesFromFiplPdf(pdfPath) {
     headerStart,
     headerStart + headers.length,
   );
-  const liftColumnCenters = liftColumnCentersFromHeader(
-    fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
-  );
-  const liftFieldMaxX = liftFieldMaxXFromHeader(fullHeaderRow);
+  const liftColumnCenters =
+    meetType === "bench"
+      ? null
+      : liftColumnCentersFromHeader(
+          fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
+        );
+  const liftFieldMaxX =
+    meetType === "bench" ? null : liftFieldMaxXFromHeader(fullHeaderRow);
 
   let i = headerStart + headers.length;
 
   while (i < allItems.length) {
     const item = allItems[i].text;
 
-    if (/^[-+]\d+$/.test(item)) {
+    if (CATEGORY_START_REGEX.test(item)) {
       currentWeightClass = item;
       i++;
       continue;
@@ -475,6 +560,10 @@ async function parseEntriesFromFiplPdf(pdfPath) {
         liftColumnCenters,
         liftFieldMaxX,
         pageWidth,
+        meetType,
+        equipment,
+        activeLiftSlots,
+        rowLiftSlotOrder,
       );
       if (row.entry) entries.push(row.entry);
       i = row.nextIndex;
@@ -486,8 +575,12 @@ async function parseEntriesFromFiplPdf(pdfPath) {
   return entries;
 }
 
-function entriesToOplCsv(entries, options = { sort: true }) {
-  const headers = [
+function entriesToOplCsv(
+  entries,
+  meetType = "complete",
+  options = { sort: false },
+) {
+  const commonHeaders = [
     "Place",
     "Name",
     "Sex",
@@ -498,20 +591,26 @@ function entriesToOplCsv(entries, options = { sort: true }) {
     "BirthDate",
     "BirthYear",
     "BodyweightKg",
-    "Squat1Kg",
-    "Squat2Kg",
-    "Squat3Kg",
-    "Best3SquatKg",
-    "Bench1Kg",
-    "Bench2Kg",
-    "Bench3Kg",
-    "Best3BenchKg",
-    "Deadlift1Kg",
-    "Deadlift2Kg",
-    "Deadlift3Kg",
-    "Best3DeadliftKg",
-    "TotalKg",
   ];
+  const liftHeaders =
+    meetType === "bench"
+      ? ["Bench1Kg", "Bench2Kg", "Bench3Kg", "Best3BenchKg", "TotalKg"]
+      : [
+          "Squat1Kg",
+          "Squat2Kg",
+          "Squat3Kg",
+          "Best3SquatKg",
+          "Bench1Kg",
+          "Bench2Kg",
+          "Bench3Kg",
+          "Best3BenchKg",
+          "Deadlift1Kg",
+          "Deadlift2Kg",
+          "Deadlift3Kg",
+          "Best3DeadliftKg",
+          "TotalKg",
+        ];
+  const headers = [...commonHeaders, ...liftHeaders];
 
   const csvDataLines = [];
 
@@ -536,8 +635,12 @@ function entriesToOplCsv(entries, options = { sort: true }) {
   return [headers.join(","), ...csvDataLines].join("\n") + "\n";
 }
 
-export async function convertFiplPdfToOplCsv(pdfPath, outputPath) {
-  const parsedEntries = await parseEntriesFromFiplPdf(pdfPath);
-  const csv = entriesToOplCsv(parsedEntries);
+export async function convertFiplPdfToOplCsv(
+  pdfPath,
+  outputPath,
+  meetType = "complete",
+) {
+  const parsedEntries = await parseEntriesFromFiplPdf(pdfPath, meetType);
+  const csv = entriesToOplCsv(parsedEntries, meetType);
   fs.writeFileSync(outputPath, csv, "utf-8");
 }

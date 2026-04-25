@@ -1,12 +1,12 @@
-import { test, describe } from "node:test";
-import { compareCSVFiles } from "./utils/csv.js";
+import { describe, test } from "node:test";
 import { convertFiplPdfToOplCsv } from "../src/parse.js";
+import { compareCSVFiles } from "./utils/csv.js";
 import {
   getInputPdfPath,
   getOutputCsvPath,
   getReferenceCsvPath,
 } from "./utils/dataset.js";
-import { allParserColumns } from "./utils/parser.js";
+import { allColumns, benchOnlyColumns } from "./utils/parser.js";
 
 describe("FIPL", () => {
   test("2603", async () => {
@@ -19,21 +19,22 @@ describe("FIPL", () => {
       getOutputCsvPath(meetId),
       getReferenceCsvPath(meetId),
       "Name",
-      allParserColumns,
+      allColumns,
     );
   });
 
-  test("2604", async () => {
+  test.only("2604", async () => {
     const meetId = "2604";
     await convertFiplPdfToOplCsv(
       getInputPdfPath(meetId),
       getOutputCsvPath(meetId),
+      "bench",
     );
     compareCSVFiles(
       getOutputCsvPath(meetId),
       getReferenceCsvPath(meetId),
       "Name",
-      allParserColumns,
+      benchOnlyColumns,
     );
   });
 });

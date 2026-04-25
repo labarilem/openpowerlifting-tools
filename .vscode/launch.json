@@ -11,6 +11,22 @@
       "skipFiles": [
         "<node_internals>/**"
       ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Test Only",
+      "runtimeExecutable": "node",
+      "args": [
+        "--test",
+        "--test-only",
+        "tests/parse.test.js"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     }
   ]
 }

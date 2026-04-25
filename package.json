@@ -4,7 +4,8 @@
   "scripts": {
     "import": "node scripts/import-meet.js",
     "parse": "node src/parse.js",
-    "test": "node --test tests/parseDataset.js"
+    "test": "node --test tests/parse.test.js",
+    "test:only": "node --test --test-only tests/parse.test.js"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",

@@ -1,4 +1,4 @@
-export const allParserColumns = [
+export const allColumns = [
   "Place",
   "Name",
   "Sex",
@@ -23,3 +23,17 @@ export const allParserColumns = [
   "Best3DeadliftKg",
   "TotalKg",
 ];
+
+export const benchOnlyColumns = allColumns.filter(
+  (c) =>
+    ![
+      "Squat1Kg",
+      "Squat2Kg",
+      "Squat3Kg",
+      "Best3SquatKg",
+      "Deadlift1Kg",
+      "Deadlift2Kg",
+      "Deadlift3Kg",
+      "Best3DeadliftKg",
+    ].includes(c),
+);
