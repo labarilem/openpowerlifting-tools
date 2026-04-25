@@ -141,13 +141,15 @@ function main() {
 
   console.log(`Copied meet`);
 
-  const meetPdfUrl = fs
-    .readFileSync(path.join(destDir, "URL"))
-    .toString()
-    .trim();
-  console.log(`Downloading PDF '${meetPdfUrl}'`);
-  downloadPdf(meetPdfUrl, path.join(destDir, "input.pdf"));
-  console.log(`Downloaded PDF`);
+  const destPDFPath = path.join(destDir, "URL");
+  if (fs.existsSync(destPDFPath)) {
+    const meetPdfUrl = fs.readFileSync(destPDFPath).toString().trim();
+    console.log(`Downloading PDF '${meetPdfUrl}'`);
+    downloadPdf(meetPdfUrl, path.join(destDir, "input.pdf"));
+    console.log(`Downloaded PDF`);
+  } else {
+    console.warn("Cannot download PDF (missing URL file)");
+  }
 
   console.log("\nDone.");
 }

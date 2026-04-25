@@ -8185,7 +8185,6 @@ export const firstNames = new Set([
   "siliano",
   "silio",
   "silo",
-  "silva",
   "silvana",
   "silvano",
   "silvera",
@@ -9088,7 +9087,6 @@ export const firstNames = new Set([
   "zenobia",
   "zenobio",
   "zenone",
-  "zenovia andreea",
   "zeo",
   "zerbina",
   "zerbino",
@@ -9117,4 +9115,10 @@ export const firstNames = new Set([
   "zosimo",
   "zulina",
   "zulino",
+  // custom names
+  "yeong jo",
+  "esteban gabriel",
+  "jario patricio",
+  "emily thelma",
+  "ashley desiree",
 ]);

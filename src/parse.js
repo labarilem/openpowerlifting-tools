@@ -1,6 +1,6 @@
 import fs from "fs";
 import pdfjs from "pdfjs-dist";
-import { normalizeFullName } from "./lib/names.js";
+import { normalizeFullName, withNameOverride } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
 
 const CATEGORY_START_REGEX = /^[-+]\d+/;
@@ -304,13 +304,29 @@ function parseRowData(
 ) {
   if (rowItems.length < 6) return null;
 
-  let place = rowItems[0].text.replace("°", "");
+  const normalizedRowItems = [...rowItems];
+  const rawNameToken = normalizedRowItems[1]?.text?.trim() || "";
+  const nameWordCount = rawNameToken.split(/\s+/).filter(Boolean).length;
+
+  // Some rows split surname and first name into separate tokens.
+  // Merge them so downstream fixed-column parsing keeps the expected offsets.
+  if (nameWordCount === 1 && normalizedRowItems.length > 2) {
+    const mergedName = `${normalizedRowItems[1].text} ${normalizedRowItems[2].text}`.trim();
+    normalizedRowItems[1] = {
+      ...normalizedRowItems[1],
+      text: mergedName,
+    };
+    normalizedRowItems.splice(2, 1);
+  }
+
+  let place = normalizedRowItems[0].text.replace("°", "");
   if (place === "FG") place = "DQ";
 
-  const normalizedName = normalizeFullName(rowItems[1].text);
-  const birthYear = rowItems[3].text;
-  const bodyweightStr = rowItems[4].text;
-  const division = rowItems[5].text;
+  const birthYear = normalizedRowItems[3].text;
+  const normalizedName = normalizeFullName(normalizedRowItems[1].text);
+  const finalName = withNameOverride(normalizedName, birthYear);
+  const bodyweightStr = normalizedRowItems[4].text;
+  const division = normalizedRowItems[5].text;
 
   const bodyweightKg = parseFloat(bodyweightStr.replace(",", "."));
   const hasValidBirthYear = /^\d{4}$/.test(birthYear);
@@ -321,7 +337,7 @@ function parseRowData(
   }
 
   const lifts = assignLiftsByCoordinates(
-    rowItems,
+    normalizedRowItems,
     liftColumnCenters,
     liftFieldMaxX,
     pageWidth,
@@ -333,7 +349,7 @@ function parseRowData(
 
   return {
     Place: place,
-    Name: normalizedName,
+    Name: finalName,
     Sex: sex,
     Event: meetType === "bench" ? "B" : "SBD",
     Division: division || "Sub-Junior",

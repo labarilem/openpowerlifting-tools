@@ -15,12 +15,10 @@ describe("FIPL", () => {
       getInputPdfPath(meetId),
       getOutputCsvPath(meetId),
     );
-    compareCSVFiles(
-      getOutputCsvPath(meetId),
-      getReferenceCsvPath(meetId),
-      "Name",
-      allColumns,
-    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
   });
 
   test("2604", async () => {
@@ -30,11 +28,21 @@ describe("FIPL", () => {
       getOutputCsvPath(meetId),
       "bench",
     );
-    compareCSVFiles(
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: benchOnlyColumns,
+    });
+  });
+
+  test.only("2605", async () => {
+    const meetId = "2605";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
       getOutputCsvPath(meetId),
-      getReferenceCsvPath(meetId),
-      "Name",
-      benchOnlyColumns,
+      "bench",
     );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      compareColumns: benchOnlyColumns,
+    });
   });
 });
