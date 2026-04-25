@@ -423,21 +423,7 @@ function parseRow(
 /**
  * Parse PDF
  */
-async function parseEntriesFromFiplPdf(pdfPath, meetType = "complete") {
-  if (!["bench", "deadlift", "complete"].includes(meetType)) {
-    throw new Error(
-      `Invalid meetType '${meetType}'. Expected 'bench', 'deadlift', or 'complete'.`,
-    );
-  }
-  if (meetType === "deadlift") {
-    throw new Error("not implemented");
-  }
-
-  const activeLiftSlots =
-    meetType === "bench" ? BENCH_ONLY_LIFT_SLOTS : COMPLETE_LIFT_SLOTS;
-  const rowLiftSlotOrder =
-    meetType === "bench" ? BENCH_ROW_LIFT_SLOTS : COMPLETE_ROW_LIFT_SLOTS;
-
+async function parseEntriesFromFiplPdf(pdfPath) {
   const pdfBuffer = fs.readFileSync(pdfPath);
   const uint8Array = new Uint8Array(pdfBuffer);
   const pdf = await pdfjs.getDocument({ data: uint8Array }).promise;
@@ -445,6 +431,17 @@ async function parseEntriesFromFiplPdf(pdfPath, meetType = "complete") {
   const page1 = await pdf.getPage(1);
   const page1Content = await page1.getTextContent();
   const pageWidth = page1.getViewport({ scale: 1 }).width;
+  const page1Text = page1Content.items
+    .map((item) => item.str || "")
+    .join(" ")
+    .toUpperCase();
+  const meetType = page1Text.includes("COPPA BERTOLETTI")
+    ? "bench"
+    : "complete";
+  const activeLiftSlots =
+    meetType === "bench" ? BENCH_ONLY_LIFT_SLOTS : COMPLETE_LIFT_SLOTS;
+  const rowLiftSlotOrder =
+    meetType === "bench" ? BENCH_ROW_LIFT_SLOTS : COMPLETE_ROW_LIFT_SLOTS;
   const equipment = page1Content.items.some((item) =>
     /ATTREZZAT/i.test(item.str || ""),
   )
@@ -600,7 +597,7 @@ async function parseEntriesFromFiplPdf(pdfPath, meetType = "complete") {
     }
   }
 
-  return entries;
+  return { entries, meetType };
 }
 
 function entriesToOplCsv(
@@ -663,12 +660,10 @@ function entriesToOplCsv(
   return [headers.join(","), ...csvDataLines].join("\n") + "\n";
 }
 
-export async function convertFiplPdfToOplCsv(
-  pdfPath,
-  outputPath,
-  meetType = "complete",
-) {
-  const parsedEntries = await parseEntriesFromFiplPdf(pdfPath, meetType);
+export async function convertFiplPdfToOplCsv(pdfPath, outputPath) {
+  const { entries: parsedEntries, meetType } = await parseEntriesFromFiplPdf(
+    pdfPath,
+  );
   const csv = entriesToOplCsv(parsedEntries, meetType);
   fs.writeFileSync(outputPath, csv, "utf-8");
 }

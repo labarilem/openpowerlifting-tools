@@ -23,24 +23,16 @@ describe("FIPL", () => {
 
   test("2604", async () => {
     const meetId = "2604";
-    await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
-      "bench",
-    );
+    await convertFiplPdfToOplCsv(getInputPdfPath(meetId), getOutputCsvPath(meetId));
     compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
       sortColumn: "Name",
       compareColumns: benchOnlyColumns,
     });
   });
 
-  test.only("2605", async () => {
+  test("2605", async () => {
     const meetId = "2605";
-    await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
-      "bench",
-    );
+    await convertFiplPdfToOplCsv(getInputPdfPath(meetId), getOutputCsvPath(meetId));
     compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
       compareColumns: benchOnlyColumns,
     });
