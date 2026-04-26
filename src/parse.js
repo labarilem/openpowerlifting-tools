@@ -33,6 +33,8 @@ const DEADLIFT_ONLY_MARKERS = [
 const DISAMBIGUATION_SUFFIX_REGEX = /\s+#\d+$/;
 const DISAMBIGUATION_NAME_HEADER = "Name";
 const FIPL_ATHLETES_HEADERS = ["Name", "BirthYear"];
+const UNIFIED_WEIGHT_CLASS_LIST_REGEX =
+  /^[-+]\d+(?:\s*,\s*[-+]\d+)+(?:\s*,\s*[-+]\d+)*$/;
 
 let disambiguationEntries = null;
 let fiplAthletesByBaseName = null;
@@ -449,6 +451,78 @@ function parseWeightClass(weightClass) {
   return match ? match[1] + overCategory : "";
 }
 
+/**
+ * Returns true when the token is a grouped class list like:
+ * "-53, -59, -66, -74, -83, -93, -105, -120, +120"
+ * @param {string} text
+ * @returns {boolean}
+ */
+function isUnifiedWeightClassList(text) {
+  const normalized = String(text || "").trim();
+  return UNIFIED_WEIGHT_CLASS_LIST_REGEX.test(normalized);
+}
+
+/**
+ * Parse grouped classes into sortable numeric thresholds.
+ * @param {string} text
+ * @returns {Array<{ raw: string, limit: number, isPlus: boolean }>}
+ */
+function parseUnifiedWeightClassList(text) {
+  if (!isUnifiedWeightClassList(text)) return [];
+  const parsed = text
+    .split(",")
+    .map((segment) => segment.trim())
+    .map((token) => {
+      const match = token.match(/^([+-])(\d+(?:[.,]\d+)?)$/);
+      if (!match) return null;
+      const limit = parseFloat(match[2].replace(",", "."));
+      if (!Number.isFinite(limit)) return null;
+      return {
+        raw: token,
+        limit,
+        isPlus: match[1] === "+",
+      };
+    })
+    .filter(Boolean);
+
+  // OCR in some FIPL sheets duplicates "-76" as an extra "-72".
+  // When both are present, keep the canonical "-76" bucket.
+  const has72 = parsed.some((weightClass) => !weightClass.isPlus && weightClass.limit === 72);
+  const has76 = parsed.some((weightClass) => !weightClass.isPlus && weightClass.limit === 76);
+  if (has72 && has76) {
+    return parsed.filter(
+      (weightClass) => weightClass.isPlus || weightClass.limit !== 72,
+    );
+  }
+
+  return parsed;
+}
+
+/**
+ * Infer weight class for grouped-class layouts from athlete bodyweight.
+ * Picks the smallest class limit >= bodyweight.
+ * Falls back to plus bucket when present.
+ * @param {number} bodyweightKg
+ * @param {Array<{ raw: string, limit: number, isPlus: boolean }>} groupedClasses
+ * @returns {string}
+ */
+function inferUnifiedWeightClass(bodyweightKg, groupedClasses) {
+  if (!Number.isFinite(bodyweightKg) || groupedClasses.length === 0) return "";
+
+  const sorted = [...groupedClasses].sort((a, b) => a.limit - b.limit);
+  const smallestFittingClass = sorted.find(
+    (weightClass) => bodyweightKg <= weightClass.limit,
+  );
+  if (smallestFittingClass) {
+    return parseWeightClass(smallestFittingClass.raw);
+  }
+
+  const plusClass = sorted.find((weightClass) => weightClass.isPlus);
+  if (plusClass) return parseWeightClass(plusClass.raw);
+
+  return parseWeightClass(sorted[sorted.length - 1]?.raw || "");
+}
+
 function parseLiftCell(itemObj, slotIndex) {
   const item = itemObj.text.trim();
   if (item === "" || item === "-" || item === "—") return "";
@@ -480,13 +554,14 @@ function parseLiftCell(itemObj, slotIndex) {
 function parseRowData(
   rowItems,
   weightClass,
+  unifiedWeightClassGroup,
   liftColumnCenters,
   liftFieldMaxX,
   pageWidth,
   meetType,
   sex,
   equipment,
-  forceOpenDivision,
+  isOpenDivision,
   activeLiftSlots,
   rowLiftSlotOrder,
 ) {
@@ -539,14 +614,21 @@ function parseRowData(
 
   while (lifts.length < 14) lifts.push("");
 
+  const inferredUnifiedWeightClass = inferUnifiedWeightClass(
+    bodyweightKg,
+    unifiedWeightClassGroup,
+  );
+  const normalizedWeightClass =
+    inferredUnifiedWeightClass || parseWeightClass(weightClass);
+
   return {
     Place: place,
     Name: finalName,
     Sex: sex,
     Event:
       meetType === "bench" ? "B" : meetType === "deadlift" ? "D" : "SBD",
-    Division: forceOpenDivision ? "Open" : division || "Sub-Junior",
-    WeightClassKg: parseWeightClass(weightClass),
+    Division: isOpenDivision ? "Open" : division || "Sub-Junior",
+    WeightClassKg: normalizedWeightClass,
     Equipment: equipment,
     BirthDate: "",
     BirthYear: birthYear,
@@ -575,12 +657,13 @@ function parseRow(
   items,
   startIndex,
   weightClass,
+  unifiedWeightClassGroup,
   liftColumnCenters,
   liftFieldMaxX,
   pageWidth,
   meetType,
   equipment,
-  forceOpenDivision,
+  isOpenDivision,
   activeLiftSlots,
   rowLiftSlotOrder,
 ) {
@@ -601,13 +684,14 @@ function parseRow(
     entry: parseRowData(
       rowItems,
       weightClass,
+      unifiedWeightClassGroup,
       liftColumnCenters,
       liftFieldMaxX,
       pageWidth,
       meetType,
       rowItems[0]?.sex || "M",
       equipment,
-      forceOpenDivision,
+      isOpenDivision,
       activeLiftSlots,
       rowLiftSlotOrder,
     ),
@@ -617,8 +701,10 @@ function parseRow(
 
 /**
  * Parse PDF
+ * @param {string} pdfPath
+ * @param {{ isOpenDivision?: boolean }} [options]
  */
-async function parseEntriesFromFiplPdf(pdfPath) {
+async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
   const pdfBuffer = fs.readFileSync(pdfPath);
   const uint8Array = new Uint8Array(pdfBuffer);
   const pdf = await pdfjs.getDocument({ data: uint8Array }).promise;
@@ -654,7 +740,12 @@ async function parseEntriesFromFiplPdf(pdfPath) {
   )
     ? "Single-ply"
     : "Raw";
-  const forceOpenDivision = page1Text.includes("OPEN");
+  const isOpenDivision =
+    options.isOpenDivision !== undefined
+      ? options.isOpenDivision
+      : page1Text.includes("OPEN");
+  const hasUnifiedWeightClassLayout =
+    page1Text.includes("COPPA ITALIA") && page1Text.includes("ATTREZZAT");
 
   const allItems = [];
 
@@ -762,6 +853,7 @@ async function parseEntriesFromFiplPdf(pdfPath) {
 
   const entries = [];
   let currentWeightClass = "";
+  let currentUnifiedWeightClassGroup = [];
 
   let headerStart = 0;
   while (
@@ -802,8 +894,15 @@ async function parseEntriesFromFiplPdf(pdfPath) {
   while (i < allItems.length) {
     const item = allItems[i].text;
 
+    if (hasUnifiedWeightClassLayout && isUnifiedWeightClassList(item)) {
+      currentUnifiedWeightClassGroup = parseUnifiedWeightClassList(item);
+      i++;
+      continue;
+    }
+
     if (CATEGORY_START_REGEX.test(item)) {
       currentWeightClass = item;
+      currentUnifiedWeightClassGroup = [];
       i++;
       continue;
     }
@@ -813,12 +912,13 @@ async function parseEntriesFromFiplPdf(pdfPath) {
         allItems,
         i,
         currentWeightClass,
+        currentUnifiedWeightClassGroup,
         liftColumnCenters,
         liftFieldMaxX,
         pageWidth,
         meetType,
         equipment,
-        forceOpenDivision,
+        isOpenDivision,
         activeLiftSlots,
         rowLiftSlotOrder,
       );
@@ -900,9 +1000,14 @@ function entriesToOplCsv(
   return [headers.join(","), ...csvDataLines].join("\n") + "\n";
 }
 
-export async function convertFiplPdfToOplCsv(pdfPath, outputPath) {
+/**
+ * @param {string} pdfPath
+ * @param {string} outputPath
+ * @param {{ isOpenDivision?: boolean }} [options] forwarded to {@link parseEntriesFromFiplPdf}
+ */
+export async function convertFiplPdfToOplCsv(pdfPath, outputPath, options = {}) {
   const { entries: parsedEntries, meetType } =
-    await parseEntriesFromFiplPdf(pdfPath);
+    await parseEntriesFromFiplPdf(pdfPath, options);
   const csv = entriesToOplCsv(parsedEntries, meetType);
   fs.writeFileSync(outputPath, csv, "utf-8");
 }

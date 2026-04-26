@@ -6,9 +6,9 @@ import {
   getOutputCsvPath,
   getReferenceCsvPath,
 } from "../../utils/dataset.js";
-import { deadliftOnlyColumns } from "../../utils/parser.js";
+import { allColumns, deadliftOnlyColumns } from "../../utils/parser.js";
 
-describe("FIPL 2025", () => {
+describe("FIPL YEAR 2025", () => {
   test("2506", async () => {
     const meetId = "2506";
     await convertFiplPdfToOplCsv(
@@ -42,6 +42,19 @@ describe("FIPL 2025", () => {
     compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
       sortColumn: "Name",
       compareColumns: deadliftOnlyColumns,
+    });
+  });
+
+  test("2521", async () => {
+    const meetId = "2521";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
     });
   });
 });

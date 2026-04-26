@@ -8,7 +8,7 @@ import {
 } from "../../utils/dataset.js";
 import { allColumns, benchOnlyColumns } from "../../utils/parser.js";
 
-describe("FIPL 2026", () => {
+describe("FIPL YEAR 2026", () => {
   test("2601", async () => {
     const meetId = "2601";
     await convertFiplPdfToOplCsv(getInputPdfPath(meetId), getOutputCsvPath(meetId));
