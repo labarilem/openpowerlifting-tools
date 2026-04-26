@@ -9123,4 +9123,7 @@ export const firstNames = new Set([
   "oscar javier",
   "harpa sif",
   "abdel muhdi",
+  "abd elhraman",
+  "emem aniedi",
+  "said fabio",
 ]);

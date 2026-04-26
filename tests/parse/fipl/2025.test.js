@@ -21,8 +21,20 @@ describe("FIPL 2025", () => {
     });
   });
 
-  test.only("2507", async () => {
+  test("2507", async () => {
     const meetId = "2507";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: deadliftOnlyColumns,
+    });
+  });
+
+  test("2508", async () => {
+    const meetId = "2508";
     await convertFiplPdfToOplCsv(
       getInputPdfPath(meetId),
       getOutputCsvPath(meetId),
