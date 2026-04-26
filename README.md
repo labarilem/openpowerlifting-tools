@@ -43,6 +43,20 @@ Example:
 npm run format tests/dataset/fipl/2602/entries.csv BodyweightKg 2
 ```
 
+## Compare names
+
+Run:
+
+```
+npm run compare <federation> <meetId> [columnName]
+```
+
+Example:
+
+```
+npm run compare fipl 2601 Name
+```
+
 ## License
 
 This project is released under the MIT License.

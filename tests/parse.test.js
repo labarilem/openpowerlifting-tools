@@ -9,6 +9,18 @@ import {
 import { allColumns, benchOnlyColumns } from "./utils/parser.js";
 
 describe("FIPL", () => {
+  test.only("2601", async () => {
+    const meetId = "2601";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: benchOnlyColumns,
+    });
+  });
+
   test("2602", async () => {
     const meetId = "2602";
     await convertFiplPdfToOplCsv(

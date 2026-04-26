@@ -3,13 +3,15 @@ import { namesOverrides } from "./names-overrides.js";
 import { toTitleCase } from "./format.js";
 
 /**
- * Checks whether wors is a proposition used in person names.
+ * Checks whether wors is a proposition used in person last names.
  * @param {string} word
  * @returns {boolean}
  */
-function isProposition(word) {
+function isLastnameProposition(word) {
   if (!word) return false;
-  return ["di", "da", "in"].includes(word.toLowerCase());
+  return ["di", "da", "in", "el", "la", "lo", "della", "de", "del"].includes(
+    word.toLowerCase(),
+  );
 }
 
 const maxFirstNameWords = Math.max(
@@ -39,7 +41,7 @@ export function normalizeFullName(rawName) {
     if (!firstNameWords) break;
 
     const firstNameStartIndex = i - firstNameWords + 1;
-    if (isProposition(nameParts[firstNameStartIndex - 1])) break;
+    if (isLastnameProposition(nameParts[firstNameStartIndex - 1])) break;
 
     lastFirstNameIndex = firstNameStartIndex;
     i = firstNameStartIndex - 1;
