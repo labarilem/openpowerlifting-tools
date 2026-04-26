@@ -4,7 +4,7 @@ Place,Name,Sex,Event,Division,WeightClassKg,Equipment,BirthDate,BirthYear,Bodywe
 3,Alexandru Liviu Maftei,M,D,Senior,59,Raw,,1997,58.95,180.0,195.0,-215.0,195.0,195.0
 1,Vincenzo Davide Arvia,M,D,Senior,66,Raw,,1998,66.00,200.0,215.0,230.0,230.0,230.0
 2,Luca Grandinetti,M,D,Senior,66,Raw,,1990,63.94,182.5,192.5,205.0,205.0,205.0
-3,Javier Bocca Oscar,M,D,Senior,66,Raw,,1999,63.35,165.0,172.5,180.0,180.0,180.0
+3,Oscar Javier Bocca,M,D,Senior,66,Raw,,1999,63.35,165.0,172.5,180.0,180.0,180.0
 DQ,Emanuele Ventimiglia,M,D,Senior,66,Raw,,1996,65.52,-230.0,-235.0,-258.0,,
 1,Cristian Del Galdo,M,D,Senior,74,Raw,,1998,73.63,255.0,277.5,291.5,291.5,291.5
 2,Fabio Fontana,M,D,Senior,74,Raw,,1997,73.44,272.5,282.5,-292.0,282.5,282.5
@@ -39,7 +39,7 @@ DQ,Alberto Gandaglia,M,D,Senior,74,Raw,,1999,73.47,-270.0,-280.0,-285.5,,
 10,Giacomo Gimorri,M,D,Senior,83,Raw,,1999,76.89,250.0,270.0,-280.0,270.0,270.0
 11,Alessandro Decò,M,D,Senior,83,Raw,,1992,82.38,260.0,267.5,-275.0,267.5,267.5
 12,Omar Pedruzzi,M,D,Senior,83,Raw,,1998,79.71,-225.0,237.5,250.0,250.0,250.0
-13,Corso Marco Dal,M,D,Senior,83,Raw,,1997,81.50,230.0,245.0,-260.0,245.0,245.0
+13,Marco Dal Corso,M,D,Senior,83,Raw,,1997,81.50,230.0,245.0,-260.0,245.0,245.0
 14,Pietro Martinoli,M,D,Senior,83,Raw,,1998,77.38,225.0,240.0,-250.0,240.0,240.0
 15,Giacomo Rubiolo,M,D,Senior,83,Raw,,1991,76.84,235.0,-250.0,-250.0,235.0,235.0
 16,Luca Gilio,M,D,Senior,83,Raw,,1998,82.41,-225.0,235.0,-242.5,235.0,235.0
@@ -109,7 +109,7 @@ DQ,Luca Domizio,M,D,Senior,93,Raw,,1997,91.58,-232.5,-232.5,-232.5,,
 6,Alfieri Gregoratti,M,D,Senior,120,Raw,,1996,111.42,280.0,300.0,,300.0,300.0
 7,Carlos Mayorga,M,D,Senior,120,Raw,,1991,112.24,270.0,285.0,300.0,300.0,300.0
 8,Filippo Pulcinelli,M,D,Senior,120,Raw,,1996,108.60,260.0,280.0,295.0,295.0,295.0
-9,Kyle Burdese Gerard,M,D,Senior,120,Raw,,1998,114.13,295.0,-297.5,-334.0,295.0,295.0
+9,Gerard Kyle Burdese,M,D,Senior,120,Raw,,1998,114.13,295.0,-297.5,-334.0,295.0,295.0
 10,Giorgio Ferolo,M,D,Senior,120,Raw,,1997,105.45,270.0,-285.0,285.0,285.0,285.0
 11,Davide Della Valentina,M,D,Senior,120,Raw,,1999,109.28,277.5,285.0,-295.0,285.0,285.0
 12,Giovanni Benà,M,D,Senior,120,Raw,,1998,109.15,250.0,-265.0,-272.5,250.0,250.0

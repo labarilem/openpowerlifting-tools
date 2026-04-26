@@ -5,6 +5,7 @@ import http from "http";
 import https from "https";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
+import config from "../config.js";
 
 /**
  * Downloads a PDF from the given URL and saves it to destPath.
@@ -139,7 +140,7 @@ async function main() {
     printUsage();
     process.exit(1);
   }
-  repoPath = repoPath ?? "../opl-data";
+  repoPath = repoPath ?? config.defaultOplDataRepoPath;
   outputDir = outputDir ?? `./tests/dataset/${federation}/${meetId}`;
 
   const meetSrcDir = path.resolve(repoPath, "meet-data", federation, meetId);

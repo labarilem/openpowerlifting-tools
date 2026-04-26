@@ -57,6 +57,46 @@ Example:
 npm run compare fipl 2601 Name
 ```
 
+## Compile athletes
+
+Build a unique list of athletes (Name + BirthYear) across all meets for one federation.
+
+Run:
+
+```
+npm run compile-athletes <federation> [repoPath]
+```
+
+If `repoPath` is omitted, the script uses `defaultOplDataRepoPath` from `config.js`.
+
+Example:
+
+```
+npm run compile-athletes fipl
+```
+
+Output is written to:
+
+```
+scripts/data/<federation>-athletes.csv
+```
+
+## Set column value
+
+Set all values of one column in a meet `entries.csv`.
+
+Run:
+
+```
+npm run set-column -- <federation> <meetId> <columnName> <columnValue>
+```
+
+Example:
+
+```
+npm run set-column -- fipl 2507 Division Open
+```
+
 ## License
 
 This project is released under the MIT License.

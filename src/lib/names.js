@@ -9,7 +9,7 @@ import { toTitleCase } from "./format.js";
  */
 function isLastnameProposition(word) {
   if (!word) return false;
-  return ["di", "da", "in", "el", "la", "lo", "della", "de", "del"].includes(
+  return ["di", "da", "in", "el", "la", "lo", "della", "de", "del", "dal"].includes(
     word.toLowerCase(),
   );
 }

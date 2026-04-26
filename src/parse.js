@@ -1,7 +1,9 @@
 import fs from "fs";
+import path from "path";
 import pdfjs from "pdfjs-dist";
 import { normalizeFullName, withNameOverride } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
+import config from "../config.js";
 
 const CATEGORY_START_REGEX = /^[-+]\d+/;
 
@@ -23,7 +25,181 @@ const BENCH_ONLY_MARKERS = [
   "COPPA BERTOLETTI",
   "CAMPIONATO ITALIANO OPEN DI PANCA ",
 ];
-const DEADLIFT_ONLY_MARKERS = ["GARA DI STACCO"];
+const DEADLIFT_ONLY_MARKERS = ["GARA DI STACCO", "GARA OPEN DI STACCO"];
+const DISAMBIGUATION_SUFFIX_REGEX = /\s+#\d+$/;
+const DISAMBIGUATION_NAME_HEADER = "Name";
+const FIPL_ATHLETES_HEADERS = ["Name", "BirthYear"];
+
+let disambiguationEntries = null;
+let fiplAthletesByBaseName = null;
+
+function parseCsvLine(line) {
+  const values = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    const next = line[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (ch === "," && !inQuotes) {
+      values.push(current);
+      current = "";
+      continue;
+    }
+
+    current += ch;
+  }
+
+  values.push(current);
+  return values;
+}
+
+function toDisambiguationLookupKey(name) {
+  return String(name || "").trim().toLowerCase();
+}
+
+function stripDisambiguationSuffix(name) {
+  return String(name || "").replace(DISAMBIGUATION_SUFFIX_REGEX, "").trim();
+}
+
+function loadDisambiguationEntries() {
+  if (disambiguationEntries) return disambiguationEntries;
+
+  const disambiguationPath = path.resolve(
+    config.defaultOplDataRepoPath,
+    "lifter-data",
+    "name-disambiguation.csv",
+  );
+  const entries = new Map();
+  if (!fs.existsSync(disambiguationPath)) {
+    disambiguationEntries = entries;
+    return disambiguationEntries;
+  }
+
+  const lines = fs
+    .readFileSync(disambiguationPath, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    disambiguationEntries = entries;
+    return disambiguationEntries;
+  }
+
+  const headers = parseCsvLine(lines[0]).map((header) => header.trim());
+  const nameIndex = headers.indexOf(DISAMBIGUATION_NAME_HEADER);
+  if (nameIndex === -1) {
+    disambiguationEntries = entries;
+    return disambiguationEntries;
+  }
+
+  const idIndex = headers.length > 1 ? 1 : -1;
+
+  for (const line of lines.slice(1)) {
+    const cells = parseCsvLine(line);
+    const name = (cells[nameIndex] || "").trim();
+    const idRaw = idIndex !== -1 ? (cells[idIndex] || "").trim() : "";
+    const id = /^\d+$/.test(idRaw) ? Number(idRaw) : null;
+    if (!name) continue;
+    entries.set(toDisambiguationLookupKey(name), { id });
+  }
+
+  disambiguationEntries = entries;
+  return disambiguationEntries;
+}
+
+function loadFiplAthletesByBaseName() {
+  if (fiplAthletesByBaseName) return fiplAthletesByBaseName;
+
+  const athletesPath = path.resolve(
+    "scripts",
+    "data",
+    "fipl-athletes.csv",
+  );
+  const athletesByName = new Map();
+  if (!fs.existsSync(athletesPath)) {
+    fiplAthletesByBaseName = athletesByName;
+    return fiplAthletesByBaseName;
+  }
+
+  const lines = fs
+    .readFileSync(athletesPath, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    fiplAthletesByBaseName = athletesByName;
+    return fiplAthletesByBaseName;
+  }
+
+  const headers = parseCsvLine(lines[0]).map((header) => header.trim());
+  const nameIndex = headers.indexOf(FIPL_ATHLETES_HEADERS[0]);
+  const birthYearIndex = headers.indexOf(FIPL_ATHLETES_HEADERS[1]);
+
+  if (nameIndex === -1) {
+    fiplAthletesByBaseName = athletesByName;
+    return fiplAthletesByBaseName;
+  }
+
+  for (const line of lines.slice(1)) {
+    const cells = parseCsvLine(line);
+    const fullName = (cells[nameIndex] || "").trim();
+    if (!fullName) continue;
+    const baseName = stripDisambiguationSuffix(fullName);
+    const key = toDisambiguationLookupKey(baseName);
+    if (!key) continue;
+    const birthYear = (cells[birthYearIndex] || "").trim();
+    const current = athletesByName.get(key) || [];
+    current.push({ name: fullName, birthYear });
+    athletesByName.set(key, current);
+  }
+
+  fiplAthletesByBaseName = athletesByName;
+  return fiplAthletesByBaseName;
+}
+
+function resolveDisambiguatedName(name, birthYear) {
+  const lookupName = toDisambiguationLookupKey(name);
+  if (!lookupName) return name;
+
+  const disambiguationMap = loadDisambiguationEntries();
+  const disambiguationEntry = disambiguationMap.get(lookupName);
+  if (!disambiguationEntry) return name;
+
+  const athletesByName = loadFiplAthletesByBaseName();
+  const matches = athletesByName.get(lookupName) || [];
+  if (matches.length === 0) return name;
+  if (matches.length === 1) return matches[0].name;
+
+  let narrowedMatches = matches;
+  const validBirthYear = /^\d{4}$/.test(birthYear) ? birthYear : "";
+  if (validBirthYear) {
+    const matchesWithBirthYear = matches.filter(
+      (candidate) => candidate.birthYear === validBirthYear,
+    );
+    if (matchesWithBirthYear.length > 0) {
+      narrowedMatches = matchesWithBirthYear;
+    }
+  }
+
+  const firstHashedMatch = narrowedMatches.find((candidate) =>
+    DISAMBIGUATION_SUFFIX_REGEX.test(candidate.name),
+  );
+  return (firstHashedMatch || narrowedMatches[0]).name;
+}
 
 /**
  * Horizontal center of a text run in PDF user space (for column assignment).
@@ -333,7 +509,10 @@ function parseRowData(
 
   const birthYear = normalizedRowItems[3].text;
   const normalizedName = normalizeFullName(normalizedRowItems[1].text);
-  const finalName = withNameOverride(normalizedName, birthYear);
+  const finalName = resolveDisambiguatedName(
+    withNameOverride(normalizedName, birthYear),
+    birthYear,
+  );
   const bodyweightStr = normalizedRowItems[4].text;
   const division = normalizedRowItems[5].text;
 
