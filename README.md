@@ -18,13 +18,29 @@ npm test
 Run:
 
 ```
-npm run import <meet id> <opl repo path> <out dir path>
+npm run import <federation> <meet id>
+```
+
+If you run it without arguments, the script will show its documentation.
+
+Example to import a FIPL meet from default repo path to default output dir:
+
+```
+npm run import fipl 2605
+```
+
+## Format columns
+
+Run:
+
+```
+npm run format <path to csv> <column name> <number of digits>
 ```
 
 Example:
 
 ```
-npm run import 2605 ../opl-data/ ./tests/dataset/fipl/2605
+npm run format tests/dataset/fipl/2602/entries.csv BodyweightKg 2
 ```
 
 ## License

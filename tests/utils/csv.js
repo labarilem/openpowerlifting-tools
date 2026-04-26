@@ -92,7 +92,7 @@ export function compareCSVFiles(fileA, fileB, options = {}) {
           `"${fileB}" has ${JSON.stringify(rowB[col])} ` +
           (sortColumn
             ? ` (sort key: ${JSON.stringify(rowA[sortColumn])})`
-            : ""),
+            : ` (key: ${JSON.stringify(rowA["Name"])})`),
       );
     }
   }

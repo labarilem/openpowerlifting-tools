@@ -4,6 +4,7 @@ import fs from "fs";
 import http from "http";
 import https from "https";
 import path from "path";
+import { PDFDocument } from "pdf-lib";
 
 /**
  * Downloads a PDF from the given URL and saves it to destPath.
@@ -71,16 +72,17 @@ function downloadPdf(url, destPath) {
   });
 }
 
-export { downloadPdf };
-
 function printUsage() {
   console.error("Usage: node import-meet.js <meetId> <repoPath> <outputDir>");
   console.error("");
   console.error(
+    "  federation     - Name of the federation folder under meet-data/",
+  );
+  console.error(
     "  meetId     - Name of the meet folder under meet-data/<federation>/",
   );
   console.error("  repoPath   - Path to the cloned opl-data repository");
-  console.error("  outputDir  - Destination directory for the copied files");
+  console.error("  outputDir   - Path to the output directory");
   console.error("");
   console.error("Example:");
   console.error(
@@ -106,15 +108,37 @@ function copyDirContents(srcDir, destDir) {
   }
 }
 
-function main() {
-  let [, , meetId, repoPath, outputDir] = process.argv;
+function readPdfUrls(urlFilePath) {
+  const rawText = fs.readFileSync(urlFilePath, "utf8");
+  return rawText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
-  if (!meetId) {
+async function mergePdfs(inputPaths, outputPath) {
+  const mergedPdf = await PDFDocument.create();
+
+  for (const inputPath of inputPaths) {
+    const bytes = fs.readFileSync(inputPath);
+    const pdf = await PDFDocument.load(bytes);
+    const pageIndices = pdf.getPageIndices();
+    const copiedPages = await mergedPdf.copyPages(pdf, pageIndices);
+    copiedPages.forEach((page) => mergedPdf.addPage(page));
+  }
+
+  const mergedBytes = await mergedPdf.save();
+  fs.writeFileSync(outputPath, mergedBytes);
+}
+
+async function main() {
+  let [, , federation, meetId, repoPath, outputDir] = process.argv;
+
+  if (!federation || !meetId) {
     console.error("Error: Missing required arguments.\n");
     printUsage();
     process.exit(1);
   }
-  const federation = "fipl";
   repoPath = repoPath ?? "../opl-data";
   outputDir = outputDir ?? `./tests/dataset/${federation}/${meetId}`;
 
@@ -143,10 +167,41 @@ function main() {
 
   const destPDFPath = path.join(destDir, "URL");
   if (fs.existsSync(destPDFPath)) {
-    const meetPdfUrl = fs.readFileSync(destPDFPath).toString().trim();
-    console.log(`Downloading PDF '${meetPdfUrl}'`);
-    downloadPdf(meetPdfUrl, path.join(destDir, "input.pdf"));
-    console.log(`Downloaded PDF`);
+    const meetPdfUrls = readPdfUrls(destPDFPath);
+
+    if (meetPdfUrls.length === 0) {
+      console.warn("Cannot download PDF (URL file is empty)");
+    } else if (meetPdfUrls.length === 1) {
+      const [meetPdfUrl] = meetPdfUrls;
+      const inputPath = path.join(destDir, "input.pdf");
+      console.log(`Downloading PDF '${meetPdfUrl}'`);
+      await downloadPdf(meetPdfUrl, inputPath);
+      console.log("Downloaded PDF");
+    } else {
+      const tempPaths = [];
+      try {
+        for (let i = 0; i < meetPdfUrls.length; i += 1) {
+          const url = meetPdfUrls[i];
+          const tempPath = path.join(destDir, `input-part-${i + 1}.pdf`);
+          tempPaths.push(tempPath);
+          console.log(
+            `Downloading PDF ${i + 1}/${meetPdfUrls.length} '${url}'`,
+          );
+          await downloadPdf(url, tempPath);
+        }
+
+        const mergedPath = path.join(destDir, "input.pdf");
+        console.log(`Merging ${tempPaths.length} PDFs into '${mergedPath}'`);
+        await mergePdfs(tempPaths, mergedPath);
+        console.log("Merged PDF");
+      } finally {
+        for (const tempPath of tempPaths) {
+          if (fs.existsSync(tempPath)) {
+            fs.unlinkSync(tempPath);
+          }
+        }
+      }
+    }
   } else {
     console.warn("Cannot download PDF (missing URL file)");
   }
@@ -154,4 +209,7 @@ function main() {
   console.log("\nDone.");
 }
 
-main();
+main().catch((err) => {
+  console.error(`Error: ${err.message}`);
+  process.exit(1);
+});

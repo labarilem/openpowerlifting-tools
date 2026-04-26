@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "import": "node scripts/import-meet.js",
-    "parse": "node src/parse.js",
+    "format": "node scripts/format-number-column.js",
     "test": "node --test tests/parse.test.js",
     "test:only": "node --test --test-only tests/parse.test.js"
   },

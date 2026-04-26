@@ -299,6 +299,7 @@ function parseRowData(
   meetType,
   sex,
   equipment,
+  forceOpenDivision,
   activeLiftSlots,
   rowLiftSlotOrder,
 ) {
@@ -311,7 +312,8 @@ function parseRowData(
   // Some rows split surname and first name into separate tokens.
   // Merge them so downstream fixed-column parsing keeps the expected offsets.
   if (nameWordCount === 1 && normalizedRowItems.length > 2) {
-    const mergedName = `${normalizedRowItems[1].text} ${normalizedRowItems[2].text}`.trim();
+    const mergedName =
+      `${normalizedRowItems[1].text} ${normalizedRowItems[2].text}`.trim();
     normalizedRowItems[1] = {
       ...normalizedRowItems[1],
       text: mergedName,
@@ -352,7 +354,7 @@ function parseRowData(
     Name: finalName,
     Sex: sex,
     Event: meetType === "bench" ? "B" : "SBD",
-    Division: division || "Sub-Junior",
+    Division: forceOpenDivision ? "Open" : division || "Sub-Junior",
     WeightClassKg: parseWeightClass(weightClass),
     Equipment: equipment,
     BirthDate: "",
@@ -387,6 +389,7 @@ function parseRow(
   pageWidth,
   meetType,
   equipment,
+  forceOpenDivision,
   activeLiftSlots,
   rowLiftSlotOrder,
 ) {
@@ -413,6 +416,7 @@ function parseRow(
       meetType,
       rowItems[0]?.sex || "M",
       equipment,
+      forceOpenDivision,
       activeLiftSlots,
       rowLiftSlotOrder,
     ),
@@ -435,7 +439,10 @@ async function parseEntriesFromFiplPdf(pdfPath) {
     .map((item) => item.str || "")
     .join(" ")
     .toUpperCase();
-  const meetType = page1Text.includes("COPPA BERTOLETTI")
+  const meetType = [
+    "COPPA BERTOLETTI",
+    "CAMPIONATO ITALIANO OPEN DI PANCA ",
+  ].some((x) => page1Text.includes(x))
     ? "bench"
     : "complete";
   const activeLiftSlots =
@@ -447,6 +454,7 @@ async function parseEntriesFromFiplPdf(pdfPath) {
   )
     ? "Single-ply"
     : "Raw";
+  const forceOpenDivision = page1Text.includes("OPEN");
 
   const allItems = [];
 
@@ -554,9 +562,10 @@ async function parseEntriesFromFiplPdf(pdfPath) {
   );
   const liftColumnCenters =
     meetType === "bench"
-      ? liftColumnCentersFromHeader(fullHeaderRow.slice(6, 11), [
-          4, 5, 6, 7, 12,
-        ])
+      ? liftColumnCentersFromHeader(
+          fullHeaderRow.slice(6, 11),
+          [4, 5, 6, 7, 12],
+        )
       : liftColumnCentersFromHeader(
           fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
           COMPLETE_ROW_LIFT_SLOTS,
@@ -587,6 +596,7 @@ async function parseEntriesFromFiplPdf(pdfPath) {
         pageWidth,
         meetType,
         equipment,
+        forceOpenDivision,
         activeLiftSlots,
         rowLiftSlotOrder,
       );
@@ -661,9 +671,8 @@ function entriesToOplCsv(
 }
 
 export async function convertFiplPdfToOplCsv(pdfPath, outputPath) {
-  const { entries: parsedEntries, meetType } = await parseEntriesFromFiplPdf(
-    pdfPath,
-  );
+  const { entries: parsedEntries, meetType } =
+    await parseEntriesFromFiplPdf(pdfPath);
   const csv = entriesToOplCsv(parsedEntries, meetType);
   fs.writeFileSync(outputPath, csv, "utf-8");
 }

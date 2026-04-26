@@ -9,6 +9,17 @@ import {
 import { allColumns, benchOnlyColumns } from "./utils/parser.js";
 
 describe("FIPL", () => {
+  test("2602", async () => {
+    const meetId = "2602";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      compareColumns: benchOnlyColumns,
+    });
+  });
+
   test("2603", async () => {
     const meetId = "2603";
     await convertFiplPdfToOplCsv(
@@ -23,7 +34,10 @@ describe("FIPL", () => {
 
   test("2604", async () => {
     const meetId = "2604";
-    await convertFiplPdfToOplCsv(getInputPdfPath(meetId), getOutputCsvPath(meetId));
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+    );
     compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
       sortColumn: "Name",
       compareColumns: benchOnlyColumns,
@@ -32,7 +46,10 @@ describe("FIPL", () => {
 
   test("2605", async () => {
     const meetId = "2605";
-    await convertFiplPdfToOplCsv(getInputPdfPath(meetId), getOutputCsvPath(meetId));
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+    );
     compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
       compareColumns: benchOnlyColumns,
     });
