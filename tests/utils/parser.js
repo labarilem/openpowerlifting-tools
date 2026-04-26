@@ -37,3 +37,17 @@ export const benchOnlyColumns = allColumns.filter(
       "Best3DeadliftKg",
     ].includes(c),
 );
+
+export const deadliftOnlyColumns = allColumns.filter(
+  (c) =>
+    ![
+      "Squat1Kg",
+      "Squat2Kg",
+      "Squat3Kg",
+      "Best3SquatKg",
+      "Bench1Kg",
+      "Bench2Kg",
+      "Bench3Kg",
+      "Best3BenchKg",
+    ].includes(c),
+);

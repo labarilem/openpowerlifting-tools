@@ -11,12 +11,19 @@ const NO_NEGATE_LIFT_SLOTS = new Set([3, 7, 11, 12]);
 /** Lift slots: SQ1–3, BSQ, PA1–3, BPA, ST1–3, BST, TOT (IPF column ignored). */
 const LIFT_SLOT_COUNT = 13;
 const BENCH_ROW_LIFT_SLOTS = [4, 5, 6, 7, 12];
+const DEADLIFT_ROW_LIFT_SLOTS = [8, 9, 10, 11, 12];
 const COMPLETE_ROW_LIFT_SLOTS = Array.from(
   { length: LIFT_SLOT_COUNT },
   (_, index) => index,
 );
 const BENCH_ONLY_LIFT_SLOTS = new Set(BENCH_ROW_LIFT_SLOTS);
+const DEADLIFT_ONLY_LIFT_SLOTS = new Set(DEADLIFT_ROW_LIFT_SLOTS);
 const COMPLETE_LIFT_SLOTS = new Set(COMPLETE_ROW_LIFT_SLOTS);
+const BENCH_ONLY_MARKERS = [
+  "COPPA BERTOLETTI",
+  "CAMPIONATO ITALIANO OPEN DI PANCA ",
+];
+const DEADLIFT_ONLY_MARKERS = ["GARA DI STACCO"];
 
 /**
  * Horizontal center of a text run in PDF user space (for column assignment).
@@ -353,7 +360,8 @@ function parseRowData(
     Place: place,
     Name: finalName,
     Sex: sex,
-    Event: meetType === "bench" ? "B" : "SBD",
+    Event:
+      meetType === "bench" ? "B" : meetType === "deadlift" ? "D" : "SBD",
     Division: forceOpenDivision ? "Open" : division || "Sub-Junior",
     WeightClassKg: parseWeightClass(weightClass),
     Equipment: equipment,
@@ -439,16 +447,25 @@ async function parseEntriesFromFiplPdf(pdfPath) {
     .map((item) => item.str || "")
     .join(" ")
     .toUpperCase();
-  const meetType = [
-    "COPPA BERTOLETTI",
-    "CAMPIONATO ITALIANO OPEN DI PANCA ",
-  ].some((x) => page1Text.includes(x))
-    ? "bench"
-    : "complete";
+  const isDeadliftOnly = DEADLIFT_ONLY_MARKERS.some((x) => page1Text.includes(x));
+  const isBenchOnly = BENCH_ONLY_MARKERS.some((x) => page1Text.includes(x));
+  const meetType = isDeadliftOnly
+    ? "deadlift"
+    : isBenchOnly
+      ? "bench"
+      : "complete";
   const activeLiftSlots =
-    meetType === "bench" ? BENCH_ONLY_LIFT_SLOTS : COMPLETE_LIFT_SLOTS;
+    meetType === "bench"
+      ? BENCH_ONLY_LIFT_SLOTS
+      : meetType === "deadlift"
+        ? DEADLIFT_ONLY_LIFT_SLOTS
+        : COMPLETE_LIFT_SLOTS;
   const rowLiftSlotOrder =
-    meetType === "bench" ? BENCH_ROW_LIFT_SLOTS : COMPLETE_ROW_LIFT_SLOTS;
+    meetType === "bench"
+      ? BENCH_ROW_LIFT_SLOTS
+      : meetType === "deadlift"
+        ? DEADLIFT_ROW_LIFT_SLOTS
+        : COMPLETE_ROW_LIFT_SLOTS;
   const equipment = page1Content.items.some((item) =>
     /ATTREZZAT/i.test(item.str || ""),
   )
@@ -522,6 +539,21 @@ async function parseEntriesFromFiplPdf(pdfPath) {
           "TOT",
           "IPF POINTS",
         ]
+      : meetType === "deadlift"
+        ? [
+            "POS",
+            "ATLETA",
+            "SOCIETÀ",
+            "A.N.",
+            "PESO",
+            "CAT. ETÀ",
+            "ST1",
+            "ST2",
+            "ST3",
+            "BST",
+            "TOT",
+            "IPF POINTS",
+          ]
       : [
           "POS",
           "ATLETA",
@@ -566,6 +598,11 @@ async function parseEntriesFromFiplPdf(pdfPath) {
           fullHeaderRow.slice(6, 11),
           [4, 5, 6, 7, 12],
         )
+      : meetType === "deadlift"
+        ? liftColumnCentersFromHeader(
+            fullHeaderRow.slice(6, 11),
+            [8, 9, 10, 11, 12],
+          )
       : liftColumnCentersFromHeader(
           fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
           COMPLETE_ROW_LIFT_SLOTS,
@@ -573,6 +610,8 @@ async function parseEntriesFromFiplPdf(pdfPath) {
   const liftFieldMaxX =
     meetType === "bench"
       ? liftFieldMaxXFromHeader(fullHeaderRow, 10, 11)
+      : meetType === "deadlift"
+        ? liftFieldMaxXFromHeader(fullHeaderRow, 10, 11)
       : liftFieldMaxXFromHeader(fullHeaderRow);
 
   let i = headerStart + headers.length;
@@ -630,6 +669,14 @@ function entriesToOplCsv(
   const liftHeaders =
     meetType === "bench"
       ? ["Bench1Kg", "Bench2Kg", "Bench3Kg", "Best3BenchKg", "TotalKg"]
+      : meetType === "deadlift"
+        ? [
+            "Deadlift1Kg",
+            "Deadlift2Kg",
+            "Deadlift3Kg",
+            "Best3DeadliftKg",
+            "TotalKg",
+          ]
       : [
           "Squat1Kg",
           "Squat2Kg",
