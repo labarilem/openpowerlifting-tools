@@ -21,6 +21,19 @@ export function parseCSV(content) {
   return { headers, rows };
 }
 
+/** Compares two cell values; numeric columns use finite-number equality when both parse. */
+function csvCellValuesMatch(column, a, b, numericColumns) {
+  if (!numericColumns.has(column)) {
+    return a === b;
+  }
+  const na = Number(String(a).trim());
+  const nb = Number(String(b).trim());
+  if (Number.isFinite(na) && Number.isFinite(nb)) {
+    return na === nb;
+  }
+  return a === b;
+}
+
 /**
  * Compares two CSV files for logical equality.
  *
@@ -31,13 +44,19 @@ export function parseCSV(content) {
  *
  * @param {string} fileA          - Path to the first CSV file
  * @param {string} fileB          - Path to the second CSV file
- * @param {{ sortColumn?: string, sortColumns?: string[], compareColumns: string[] }} options
+ * @param {{ sortColumn?: string, sortColumns?: string[], compareColumns: string[], compareColumnsAsNumbers?: string[] }} options
  *   - `sortColumn`: Optional single column name to sort by before comparing
  *   - `sortColumns`: Optional list of columns used for lexicographic sort
  *   - `compareColumns`: Column names to compare (order matters if not sorted)
+ *   - `compareColumnsAsNumbers`: Optional subset of `compareColumns`; when both cells parse as finite numbers, they are compared numerically (so e.g. "1.0" and "1" match)
  */
 export function compareCSVFiles(fileA, fileB, options = {}) {
-  const { sortColumn, sortColumns, compareColumns = [] } = options;
+  const {
+    sortColumn,
+    sortColumns,
+    compareColumns = [],
+    compareColumnsAsNumbers = [],
+  } = options;
   const sortKeys =
     Array.isArray(sortColumns) && sortColumns.length > 0
       ? sortColumns
@@ -51,6 +70,18 @@ export function compareCSVFiles(fileA, fileB, options = {}) {
     Array.isArray(compareColumns),
     "options.compareColumns must be an array",
   );
+  assert.ok(
+    Array.isArray(compareColumnsAsNumbers),
+    "options.compareColumnsAsNumbers must be an array",
+  );
+  for (const col of compareColumnsAsNumbers) {
+    assert.ok(
+      compareColumns.includes(col),
+      `compareColumnsAsNumbers entry "${col}" must appear in compareColumns`,
+    );
+  }
+
+  const numericCompareColumns = new Set(compareColumnsAsNumbers);
 
   // Validate that compareColumns (and optional sortColumn) exist in both files
   const columnsToValidate =
@@ -95,12 +126,13 @@ export function compareCSVFiles(fileA, fileB, options = {}) {
     const rowA = sortedA[i];
     const rowB = sortedB[i];
     for (const col of compareColumns) {
-      assert.strictEqual(
-        rowA[col],
-        rowB[col],
+      const a = rowA[col];
+      const b = rowB[col];
+      assert.ok(
+        csvCellValuesMatch(col, a, b, numericCompareColumns),
         `Mismatch at row ${i + 1}, column "${col}": ` +
-          `"${fileA}" has ${JSON.stringify(rowA[col])}, ` +
-          `"${fileB}" has ${JSON.stringify(rowB[col])} ` +
+          `"${fileA}" has ${JSON.stringify(a)}, ` +
+          `"${fileB}" has ${JSON.stringify(b)} ` +
           (sortKeys.length > 0
             ? ` (sort key: ${JSON.stringify(sortKeys.map((k) => rowA[k]))})`
             : ` (key: ${JSON.stringify(rowA["Name"])})`),

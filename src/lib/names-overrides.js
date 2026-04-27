@@ -6,3 +6,5 @@ namesOverrides.set("che omarini,1970", "Che Manolo Omarini");
 namesOverrides.set("maren retagne wiebke,1998", "Wiebke Retagne");
 namesOverrides.set("asia franchini,2004", "Asia Franchini Petrovic");
 namesOverrides.set("faith obinna,2007", "Faith Obinna Onyeukwu");
+namesOverrides.set("federico logiudice,1996", "Federico Lo Giudice");
+namesOverrides.set("claudio reza elahi rasì,1996", "Rasì Claudio Reza Elahi");

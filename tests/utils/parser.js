@@ -51,3 +51,20 @@ export const deadliftOnlyColumns = allColumns.filter(
       "Best3BenchKg",
     ].includes(c),
 );
+
+export const numericColumns = [
+  "BodyweightKg",
+  "Squat1Kg",
+  "Squat2Kg",
+  "Squat3Kg",
+  "Best3SquatKg",
+  "Bench1Kg",
+  "Bench2Kg",
+  "Bench3Kg",
+  "Best3BenchKg",
+  "Deadlift1Kg",
+  "Deadlift2Kg",
+  "Deadlift3Kg",
+  "Best3DeadliftKg",
+  "TotalKg",
+];
