@@ -8,3 +8,5 @@ namesOverrides.set("asia franchini,2004", "Asia Franchini Petrovic");
 namesOverrides.set("faith obinna,2007", "Faith Obinna Onyeukwu");
 namesOverrides.set("federico logiudice,1996", "Federico Lo Giudice");
 namesOverrides.set("claudio reza elahi rasì,1996", "Rasì Claudio Reza Elahi");
+namesOverrides.set("cristian birca albert,2004", "Albert Cristian Birca");
+namesOverrides.set("onyeukwu obinna michael,2006", "Michael Onyeukwu Obinna");

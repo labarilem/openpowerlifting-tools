@@ -49,6 +49,45 @@ describe("FIPL YEAR 2025", () => {
     });
   });
 
+  test.only("2517", async () => {
+    const meetId = "2517";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2518", async () => {
+    const meetId = "2518";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2519", async () => {
+    const meetId = "2519";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
   test("2520", async () => {
     const meetId = "2520";
     await convertFiplPdfToOplCsv(
