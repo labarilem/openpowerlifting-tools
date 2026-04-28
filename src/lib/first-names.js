@@ -9127,4 +9127,5 @@ export const firstNames = new Set([
   "said fabio",
   "pier paolo",
   "flavius iulian",
+  "gian rafael",
 ]);

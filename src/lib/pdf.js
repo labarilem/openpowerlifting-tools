@@ -36,19 +36,17 @@ export function isRedColor(color) {
  * @returns {boolean}
  */
 export function isInAnyRectangle(x, y, width, height, rects) {
-    return rects.some((rect) => {
-      const right = x + width;
-      const top = y + height;
-      const rectRight = rect.x + rect.w;
-      const rectTop = rect.y + rect.h;
-  
-      // AABB: no overlap if separated on any axis
-      const noIntersection =
-        right < rect.x || // item is entirely to the left
-        x > rectRight || // item is entirely to the right
-        top < rect.y || // item is entirely below
-        y > rectTop; // item is entirely above
-  
-      return !noIntersection;
-    });
-  }
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+
+  return rects.some((rect) => {
+    const rectRight = rect.x + rect.w;
+    const rectTop = rect.y + rect.h;
+    return (
+      centerX >= rect.x &&
+      centerX <= rectRight &&
+      centerY >= rect.y &&
+      centerY <= rectTop
+    );
+  });
+}

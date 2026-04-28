@@ -30,6 +30,21 @@ const DEADLIFT_ONLY_MARKERS = [
   "GARA OPEN DI STACCO",
   "GARA CLASSIC DI STACCO",
 ];
+const SURNAME_PARTICLES = new Set([
+  "DA",
+  "DE",
+  "DEL",
+  "DEI",
+  "DEGLI",
+  "DELLA",
+  "DELLE",
+  "DI",
+  "LA",
+  "LE",
+  "LO",
+  "VAN",
+  "VON",
+]);
 const DISAMBIGUATION_SUFFIX_REGEX = /\s+#\d+$/;
 const DISAMBIGUATION_NAME_HEADER = "Name";
 const FIPL_ATHLETES_HEADERS = ["Name", "BirthYear"];
@@ -571,29 +586,47 @@ function parseRowData(
   const rawNameToken = normalizedRowItems[1]?.text?.trim() || "";
   const nameWordCount = rawNameToken.split(/\s+/).filter(Boolean).length;
 
-  // Some rows split surname and first name into separate tokens.
+  // Some rows split names into separate tokens.
   // Merge them so downstream fixed-column parsing keeps the expected offsets.
   if (nameWordCount === 1 && normalizedRowItems.length > 2) {
-    const mergedName =
-      `${normalizedRowItems[1].text} ${normalizedRowItems[2].text}`.trim();
+    const secondNameToken = normalizedRowItems[2]?.text?.trim() || "";
+    const thirdNameToken = normalizedRowItems[3]?.text?.trim() || "";
+    const hasSurnameParticle =
+      SURNAME_PARTICLES.has(secondNameToken.toUpperCase()) && thirdNameToken;
+    const mergedName = hasSurnameParticle
+      ? `${normalizedRowItems[1].text} ${secondNameToken} ${thirdNameToken}`.trim()
+      : `${normalizedRowItems[1].text} ${secondNameToken}`.trim();
+
     normalizedRowItems[1] = {
       ...normalizedRowItems[1],
       text: mergedName,
     };
-    normalizedRowItems.splice(2, 1);
+    normalizedRowItems.splice(2, hasSurnameParticle ? 2 : 1);
   }
 
   let place = normalizedRowItems[0].text.replace("°", "");
   if (place === "FG") place = "DQ";
 
-  const birthYear = normalizedRowItems[3].text;
-  const normalizedName = normalizeFullName(normalizedRowItems[1].text);
+  const birthYearIndex = normalizedRowItems.findIndex(
+    (item, index) => index >= 3 && /^\d{4}$/.test(item.text),
+  );
+  if (birthYearIndex < 0 || birthYearIndex + 2 >= normalizedRowItems.length) {
+    return null;
+  }
+
+  const nameTokens = normalizedRowItems
+    .slice(1, Math.max(2, birthYearIndex - 1))
+    .map((item) => item.text)
+    .filter(Boolean);
+  const rawName = nameTokens.join(" ").trim() || normalizedRowItems[1].text;
+  const birthYear = normalizedRowItems[birthYearIndex].text;
+  const normalizedName = normalizeFullName(rawName);
   const finalName = resolveDisambiguatedName(
     withNameOverride(normalizedName, birthYear),
     birthYear,
   );
-  const bodyweightStr = normalizedRowItems[4].text;
-  const division = normalizedRowItems[5].text;
+  const bodyweightStr = normalizedRowItems[birthYearIndex + 1].text;
+  const division = normalizedRowItems[birthYearIndex + 2].text;
 
   const bodyweightKg = parseFloat(bodyweightStr.replace(",", "."));
   const hasValidBirthYear = /^\d{4}$/.test(birthYear);

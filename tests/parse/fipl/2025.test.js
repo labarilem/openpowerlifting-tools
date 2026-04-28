@@ -49,7 +49,20 @@ describe("FIPL YEAR 2025", () => {
     });
   });
 
-  test.only("2517", async () => {
+  test.only("2516", async () => {
+    const meetId = "2516";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2517", async () => {
     const meetId = "2517";
     await convertFiplPdfToOplCsv(
       getInputPdfPath(meetId),
