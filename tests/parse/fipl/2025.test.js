@@ -9,10 +9,62 @@ import {
 import {
   allColumns,
   deadliftOnlyColumns,
-  numericColumns,
+  benchOnlyColumns,
 } from "../../utils/parser.js";
 
 describe("FIPL YEAR 2025", () => {
+  test("2501", async () => {
+    const meetId = "2501";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: true },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: benchOnlyColumns,
+    });
+  });
+
+  test("2502", async () => {
+    const meetId = "2502";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: true },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: benchOnlyColumns,
+    });
+  });
+
+  test("2503", async () => {
+    const meetId = "2503";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2504", async () => {
+    const meetId = "2504";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
   test("2506", async () => {
     const meetId = "2506";
     await convertFiplPdfToOplCsv(
@@ -49,7 +101,98 @@ describe("FIPL YEAR 2025", () => {
     });
   });
 
-  test.only("2516", async () => {
+  test("2509", async () => {
+    const meetId = "2509";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: true },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2510", async () => {
+    const meetId = "2510";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: true },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2511", async () => {
+    const meetId = "2511";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: true },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2512", async () => {
+    const meetId = "2512";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: benchOnlyColumns,
+    });
+  });
+
+  test("2513", async () => {
+    const meetId = "2513";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: benchOnlyColumns,
+    });
+  });
+
+  test("2514", async () => {
+    const meetId = "2514";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2515", async () => {
+    const meetId = "2515";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: false },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      sortColumn: "Name",
+      compareColumns: allColumns,
+    });
+  });
+
+  test("2516", async () => {
     const meetId = "2516";
     await convertFiplPdfToOplCsv(
       getInputPdfPath(meetId),

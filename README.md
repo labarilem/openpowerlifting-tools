@@ -88,13 +88,13 @@ Set all values of one column in a meet `entries.csv`.
 Run:
 
 ```
-npm run set-column -- <federation> <meetId> <columnName> <columnValue>
+npm run set-column <federation> <meetId> <columnName> <columnValue>
 ```
 
 Example:
 
 ```
-npm run set-column -- fipl 2507 Division Open
+npm run set-column fipl 2507 Division Open
 ```
 
 ## License

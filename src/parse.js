@@ -24,6 +24,7 @@ const COMPLETE_LIFT_SLOTS = new Set(COMPLETE_ROW_LIFT_SLOTS);
 const BENCH_ONLY_MARKERS = [
   "COPPA BERTOLETTI",
   "CAMPIONATO ITALIANO OPEN DI PANCA ",
+  "GARA NAZIONALE OPEN DI PANCA",
 ];
 const DEADLIFT_ONLY_MARKERS = [
   "GARA DI STACCO",
@@ -87,11 +88,15 @@ function parseCsvLine(line) {
 }
 
 function toDisambiguationLookupKey(name) {
-  return String(name || "").trim().toLowerCase();
+  return String(name || "")
+    .trim()
+    .toLowerCase();
 }
 
 function stripDisambiguationSuffix(name) {
-  return String(name || "").replace(DISAMBIGUATION_SUFFIX_REGEX, "").trim();
+  return String(name || "")
+    .replace(DISAMBIGUATION_SUFFIX_REGEX, "")
+    .trim();
 }
 
 function loadDisambiguationEntries() {
@@ -144,11 +149,7 @@ function loadDisambiguationEntries() {
 function loadFiplAthletesByBaseName() {
   if (fiplAthletesByBaseName) return fiplAthletesByBaseName;
 
-  const athletesPath = path.resolve(
-    "scripts",
-    "data",
-    "fipl-athletes.csv",
-  );
+  const athletesPath = path.resolve("scripts", "data", "fipl-athletes.csv");
   const athletesByName = new Map();
   if (!fs.existsSync(athletesPath)) {
     fiplAthletesByBaseName = athletesByName;
@@ -502,8 +503,12 @@ function parseUnifiedWeightClassList(text) {
 
   // OCR in some FIPL sheets duplicates "-76" as an extra "-72".
   // When both are present, keep the canonical "-76" bucket.
-  const has72 = parsed.some((weightClass) => !weightClass.isPlus && weightClass.limit === 72);
-  const has76 = parsed.some((weightClass) => !weightClass.isPlus && weightClass.limit === 76);
+  const has72 = parsed.some(
+    (weightClass) => !weightClass.isPlus && weightClass.limit === 72,
+  );
+  const has76 = parsed.some(
+    (weightClass) => !weightClass.isPlus && weightClass.limit === 76,
+  );
   if (has72 && has76) {
     return parsed.filter(
       (weightClass) => weightClass.isPlus || weightClass.limit !== 72,
@@ -658,8 +663,7 @@ function parseRowData(
     Place: place,
     Name: finalName,
     Sex: sex,
-    Event:
-      meetType === "bench" ? "B" : meetType === "deadlift" ? "D" : "SBD",
+    Event: meetType === "bench" ? "B" : meetType === "deadlift" ? "D" : "SBD",
     Division: isOpenDivision ? "Open" : division || "Sub-Junior",
     WeightClassKg: normalizedWeightClass,
     Equipment: equipment,
@@ -705,8 +709,11 @@ function parseRow(
   let i = startIndex;
   while (i < items.length) {
     const item = items[i].text;
+    const nextItem = items[i + 1]?.text || "";
+    const isHeaderClassList =
+      /,\s*[-+]\d+/.test(item) && /CLASSIFICA CAT\./i.test(nextItem);
 
-    if (CATEGORY_START_REGEX.test(item)) break;
+    if (CATEGORY_START_REGEX.test(item) && !isHeaderClassList) break;
     if (i > startIndex && /^(FG|DQ|\d+°)$/.test(item)) break;
 
     rowItems.push(items[i]);
@@ -749,7 +756,9 @@ async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
     .map((item) => item.str || "")
     .join(" ")
     .toUpperCase();
-  const isDeadliftOnly = DEADLIFT_ONLY_MARKERS.some((x) => page1Text.includes(x));
+  const isDeadliftOnly = DEADLIFT_ONLY_MARKERS.some((x) =>
+    page1Text.includes(x),
+  );
   const isBenchOnly = BENCH_ONLY_MARKERS.some((x) => page1Text.includes(x));
   const meetType = isDeadliftOnly
     ? "deadlift"
@@ -861,28 +870,28 @@ async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
             "TOT",
             "IPF POINTS",
           ]
-      : [
-          "POS",
-          "ATLETA",
-          "SOCIETÀ",
-          "A.N.",
-          "PESO",
-          "CAT. ETÀ",
-          "SQ1",
-          "SQ2",
-          "SQ3",
-          "BSQ",
-          "PA1",
-          "PA2",
-          "PA3",
-          "BPA",
-          "ST1",
-          "ST2",
-          "ST3",
-          "BST",
-          "TOT",
-          "IPF POINTS",
-        ];
+        : [
+            "POS",
+            "ATLETA",
+            "SOCIETÀ",
+            "A.N.",
+            "PESO",
+            "CAT. ETÀ",
+            "SQ1",
+            "SQ2",
+            "SQ3",
+            "BSQ",
+            "PA1",
+            "PA2",
+            "PA3",
+            "BPA",
+            "ST1",
+            "ST2",
+            "ST3",
+            "BST",
+            "TOT",
+            "IPF POINTS",
+          ];
 
   const entries = [];
   let currentWeightClass = "";
@@ -911,29 +920,31 @@ async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
             fullHeaderRow.slice(6, 11),
             [8, 9, 10, 11, 12],
           )
-      : liftColumnCentersFromHeader(
-          fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
-          COMPLETE_ROW_LIFT_SLOTS,
-        );
+        : liftColumnCentersFromHeader(
+            fullHeaderRow.slice(6, 6 + LIFT_SLOT_COUNT),
+            COMPLETE_ROW_LIFT_SLOTS,
+          );
   const liftFieldMaxX =
     meetType === "bench"
       ? liftFieldMaxXFromHeader(fullHeaderRow, 10, 11)
       : meetType === "deadlift"
         ? liftFieldMaxXFromHeader(fullHeaderRow, 10, 11)
-      : liftFieldMaxXFromHeader(fullHeaderRow);
+        : liftFieldMaxXFromHeader(fullHeaderRow);
 
-  let i = headerStart + headers.length;
+  let i = 0;
 
   while (i < allItems.length) {
     const item = allItems[i].text;
-
-    if (hasUnifiedWeightClassLayout && isUnifiedWeightClassList(item)) {
+    const nextItem = allItems[i + 1]?.text || "";
+    const isHeaderClassList =
+      /,\s*[-+]\d+/.test(item) && /CLASSIFICA CAT\./i.test(nextItem);
+    if (isUnifiedWeightClassList(item)) {
       currentUnifiedWeightClassGroup = parseUnifiedWeightClassList(item);
       i++;
       continue;
     }
 
-    if (CATEGORY_START_REGEX.test(item)) {
+    if (CATEGORY_START_REGEX.test(item) && !isHeaderClassList) {
       currentWeightClass = item;
       currentUnifiedWeightClassGroup = [];
       i++;
@@ -993,21 +1004,21 @@ function entriesToOplCsv(
             "Best3DeadliftKg",
             "TotalKg",
           ]
-      : [
-          "Squat1Kg",
-          "Squat2Kg",
-          "Squat3Kg",
-          "Best3SquatKg",
-          "Bench1Kg",
-          "Bench2Kg",
-          "Bench3Kg",
-          "Best3BenchKg",
-          "Deadlift1Kg",
-          "Deadlift2Kg",
-          "Deadlift3Kg",
-          "Best3DeadliftKg",
-          "TotalKg",
-        ];
+        : [
+            "Squat1Kg",
+            "Squat2Kg",
+            "Squat3Kg",
+            "Best3SquatKg",
+            "Bench1Kg",
+            "Bench2Kg",
+            "Bench3Kg",
+            "Best3BenchKg",
+            "Deadlift1Kg",
+            "Deadlift2Kg",
+            "Deadlift3Kg",
+            "Best3DeadliftKg",
+            "TotalKg",
+          ];
   const headers = [...commonHeaders, ...liftHeaders];
 
   const csvDataLines = [];
@@ -1038,9 +1049,15 @@ function entriesToOplCsv(
  * @param {string} outputPath
  * @param {{ isOpenDivision?: boolean }} [options] forwarded to {@link parseEntriesFromFiplPdf}
  */
-export async function convertFiplPdfToOplCsv(pdfPath, outputPath, options = {}) {
-  const { entries: parsedEntries, meetType } =
-    await parseEntriesFromFiplPdf(pdfPath, options);
+export async function convertFiplPdfToOplCsv(
+  pdfPath,
+  outputPath,
+  options = {},
+) {
+  const { entries: parsedEntries, meetType } = await parseEntriesFromFiplPdf(
+    pdfPath,
+    options,
+  );
   const csv = entriesToOplCsv(parsedEntries, meetType);
   fs.writeFileSync(outputPath, csv, "utf-8");
 }

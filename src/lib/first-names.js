@@ -9128,4 +9128,11 @@ export const firstNames = new Set([
   "pier paolo",
   "flavius iulian",
   "gian rafael",
+  "sara naria",
+  "shanae mary",
+  "graziano lirko",
+  "paul arne",
+  "damian alexandru",
+  "bryan francesco",
+  "giulio gabriel",
 ]);

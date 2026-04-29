@@ -10,3 +10,6 @@ namesOverrides.set("federico logiudice,1996", "Federico Lo Giudice");
 namesOverrides.set("claudio reza elahi rasì,1996", "Rasì Claudio Reza Elahi");
 namesOverrides.set("cristian birca albert,2004", "Albert Cristian Birca");
 namesOverrides.set("onyeukwu obinna michael,2006", "Michael Onyeukwu Obinna");
+namesOverrides.set("florio stefano castro,1995", "Stefano Castro Florio");
+namesOverrides.set("luca anica stefan,2000", "Stefan Luca Anica");
+namesOverrides.set("nicoleta nica oana,2003", "Oana Nicoleta Nica");
