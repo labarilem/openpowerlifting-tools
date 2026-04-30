@@ -5,7 +5,7 @@ import { normalizeFullName, withNameOverride } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
 
 /** @type {typeof import("pdfjs-dist")} */
-const pdfjsApi = (pdfjs.default ?? pdfjs);
+const pdfjsApi = pdfjs.default ?? pdfjs;
 const { OPS, Util, getDocument } = pdfjsApi;
 
 const MAX_PLAUSIBLE_WEIGHT_CLASS_LIMIT = 140;
@@ -207,7 +207,7 @@ function loadDisambiguationEntries() {
 function loadFiplAthletesByBaseName() {
   if (fiplAthletesByBaseName) return fiplAthletesByBaseName;
 
-  const athletesPath = path.resolve("scripts", "data", "fipl-athletes.csv");
+  const athletesPath = path.resolve("scripts", "data", "fipl", "athletes.csv");
   const athletesByName = new Map();
   if (!fs.existsSync(athletesPath)) {
     fiplAthletesByBaseName = athletesByName;

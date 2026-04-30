@@ -150,7 +150,7 @@ function main() {
 
   const outputDir = path.resolve("scripts", "data");
   fs.mkdirSync(outputDir, { recursive: true });
-  const outputPath = path.join(outputDir, `${federation}-athletes.csv`);
+  const outputPath = path.join(outputDir, federation, "athletes.csv");
   const disambiguationSourcePath = path.resolve(
     repoPath,
     "lifter-data",
