@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import pdfjs from "pdfjs-dist";
+import pdfjs from "pdfjs-dist/build/pdf.js";
 import { normalizeFullName, withNameOverride } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
 import config from "../config.js";
