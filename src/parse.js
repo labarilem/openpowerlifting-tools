@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
-import pdfjs from "pdfjs-dist";
+import * as pdfjsModule from "pdfjs-dist";
 import { normalizeFullName, withNameOverride } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
 import config from "../config.js";
+
+const pdfjs = pdfjsModule.default ?? pdfjsModule;
 
 const CATEGORY_START_REGEX = /^[-+]\d+/;
 
