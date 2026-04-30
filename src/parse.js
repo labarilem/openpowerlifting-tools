@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
-import * as pdfjsModule from "pdfjs-dist";
+import pdfjs from "pdfjs-dist";
 import { normalizeFullName, withNameOverride } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
 import config from "../config.js";
 
-const pdfjs = pdfjsModule.default ?? pdfjsModule;
+const { OPS, Util, getDocument } = pdfjs;
 
 const CATEGORY_START_REGEX = /^[-+]\d+/;
 
@@ -386,10 +386,8 @@ function assignLiftsByCoordinates(
  * Tracks CTM (Current Transformation Matrix) through save/restore/transform ops
  * Returns rectangles in PDF coordinate space (not viewport-transformed)
  */
-function extractRedRectangles(opList, pdfjs) {
+function extractRedRectangles(opList) {
   const { fnArray, argsArray } = opList;
-  const OPS = pdfjs.OPS;
-  const Util = pdfjs.Util;
 
   const rects = [];
   let currentColor = null;
@@ -749,7 +747,7 @@ function parseRow(
 async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
   const pdfBuffer = fs.readFileSync(pdfPath);
   const uint8Array = new Uint8Array(pdfBuffer);
-  const pdf = await pdfjs.getDocument({ data: uint8Array }).promise;
+  const pdf = await getDocument({ data: uint8Array }).promise;
 
   const page1 = await pdf.getPage(1);
   const page1Content = await page1.getTextContent();
@@ -814,7 +812,7 @@ async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
 
     // Extract red rectangles in PDF coordinate space
     const opList = await page.getOperatorList();
-    const redRects = extractRedRectangles(opList, pdfjs);
+    const redRects = extractRedRectangles(opList);
 
     for (const item of content.items) {
       if (item.str && item.str.trim().length > 0) {
