@@ -9135,4 +9135,5 @@ export const firstNames = new Set([
   "damian alexandru",
   "bryan francesco",
   "giulio gabriel",
+  "mihai alexandru",
 ]);

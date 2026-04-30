@@ -8,7 +8,7 @@ import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
 const pdfjsApi = (pdfjs.default ?? pdfjs);
 const { OPS, Util, getDocument } = pdfjsApi;
 
-const CATEGORY_START_REGEX = /^[-+]\d+/;
+const MAX_PLAUSIBLE_WEIGHT_CLASS_LIMIT = 140;
 
 /** Lift slots: SQ1–3, BSQ, PA1–3, BPA, ST1–3, BST, TOT — red negation only on attempts. */
 const NO_NEGATE_LIFT_SLOTS = new Set([3, 7, 11, 12]);
@@ -54,6 +54,61 @@ const DISAMBIGUATION_NAME_HEADER = "Name";
 const FIPL_ATHLETES_HEADERS = ["Name", "BirthYear"];
 const UNIFIED_WEIGHT_CLASS_LIST_REGEX =
   /^[-+]\d+(?:\s*,\s*[-+]\d+)+(?:\s*,\s*[-+]\d+)*$/;
+
+/** Row start token in classification tables (matches main loop row detection). */
+function isPlaceToken(text) {
+  const t = String(text || "").trim();
+  return /^(FG|DQ|\d+°)$/i.test(t);
+}
+
+/**
+ * True when text is a category banner like "-43 Sub-Junior", "+84 Senior", "-76", or "84+".
+ * Limits are capped so heavy lift attempts (e.g. -305) are never treated as class headers.
+ */
+function isWeightClassCategoryToken(text) {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  if (/^\d+\+$/.test(t)) {
+    const n = parseInt(t.slice(0, -1), 10);
+    return Number.isFinite(n) && n <= MAX_PLAUSIBLE_WEIGHT_CLASS_LIMIT;
+  }
+  const isBare = /^[-+]\d+(?:\+)?$/.test(t);
+  const isCombined = /^[-+]\d+(?:\+)?\s+[A-Za-zÀ-ÿ]/.test(t);
+  if (!isBare && !isCombined) return false;
+  const m = t.match(/^[-+](\d+)/);
+  if (!m) return false;
+  const n = parseInt(m[1], 10);
+  return Number.isFinite(n) && n <= MAX_PLAUSIBLE_WEIGHT_CLASS_LIMIT;
+}
+
+/**
+ * A weight-class banner is always immediately followed by a place token (1°, 2°, DQ, …).
+ * This avoids ending a row on failed lifts like "-200" where the next token is not a place.
+ * Bare limits (-93, +120) also follow IPF totals (e.g. "69,587") in the PDF stream; those are
+ * not real banners — require a non-numeric, non-place previous token for bare forms.
+ */
+function isWeightClassHeading(
+  text,
+  nextText,
+  isHeaderClassList,
+  prevText,
+  inUnifiedSection,
+) {
+  if (isHeaderClassList) return false;
+  if (!isWeightClassCategoryToken(text) || !isPlaceToken(nextText)) {
+    return false;
+  }
+  const t = String(text || "").trim();
+  // In unified-class sheets, bare "-83" / "-93" tokens often follow IPF scores or ranks
+  // but are not real banners (see 2521). Outside unified layout, "69,587 | -93 | 1°" is a
+  // normal section start and must still be recognized.
+  if (inUnifiedSection && /^[-+]\d+(?:\+)?$/.test(t)) {
+    const p = String(prevText || "").trim();
+    if (/^\d+[.,]\d+$/.test(p)) return false;
+    if (/^\d+°$/i.test(p)) return false;
+  }
+  return true;
+}
 
 let disambiguationEntries = null;
 let fiplAthletesByBaseName = null;
@@ -541,6 +596,12 @@ function inferUnifiedWeightClass(bodyweightKg, groupedClasses) {
   const plusClass = sorted.find((weightClass) => weightClass.isPlus);
   if (plusClass) return parseWeightClass(plusClass.raw);
 
+  const nonPlus = sorted.filter((weightClass) => !weightClass.isPlus);
+  if (nonPlus.length === 0) return "";
+
+  const maxNonPlusLimit = Math.max(...nonPlus.map((w) => w.limit));
+  if (bodyweightKg > maxNonPlusLimit) return "";
+
   return parseWeightClass(sorted[sorted.length - 1]?.raw || "");
 }
 
@@ -711,10 +772,22 @@ function parseRow(
   while (i < items.length) {
     const item = items[i].text;
     const nextItem = items[i + 1]?.text || "";
+    const prevItem = i > startIndex ? items[i - 1]?.text || "" : "";
     const isHeaderClassList =
       /,\s*[-+]\d+/.test(item) && /CLASSIFICA CAT\./i.test(nextItem);
 
-    if (CATEGORY_START_REGEX.test(item) && !isHeaderClassList) break;
+    if (isUnifiedWeightClassList(item)) break;
+
+    if (
+      isWeightClassHeading(
+        item,
+        nextItem,
+        isHeaderClassList,
+        prevItem,
+        unifiedWeightClassGroup.length > 0,
+      )
+    )
+      break;
     if (i > startIndex && /^(FG|DQ|\d+°)$/.test(item)) break;
 
     rowItems.push(items[i]);
@@ -937,6 +1010,7 @@ async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
   while (i < allItems.length) {
     const item = allItems[i].text;
     const nextItem = allItems[i + 1]?.text || "";
+    const prevItem = i > 0 ? allItems[i - 1]?.text || "" : "";
     const isHeaderClassList =
       /,\s*[-+]\d+/.test(item) && /CLASSIFICA CAT\./i.test(nextItem);
     if (isUnifiedWeightClassList(item)) {
@@ -945,7 +1019,15 @@ async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
       continue;
     }
 
-    if (CATEGORY_START_REGEX.test(item) && !isHeaderClassList) {
+    if (
+      isWeightClassHeading(
+        item,
+        nextItem,
+        isHeaderClassList,
+        prevItem,
+        currentUnifiedWeightClassGroup.length > 0,
+      )
+    ) {
       currentWeightClass = item;
       currentUnifiedWeightClassGroup = [];
       i++;

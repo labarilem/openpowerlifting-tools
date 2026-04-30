@@ -9,9 +9,18 @@ import { toTitleCase } from "./format.js";
  */
 function isLastnameProposition(word) {
   if (!word) return false;
-  return ["di", "da", "in", "el", "la", "lo", "della", "de", "del", "dal"].includes(
-    word.toLowerCase(),
-  );
+  return [
+    "di",
+    "da",
+    "in",
+    "el",
+    "la",
+    "lo",
+    "della",
+    "de",
+    "del",
+    "dal",
+  ].includes(word.toLowerCase());
 }
 
 const maxFirstNameWords = Math.max(
