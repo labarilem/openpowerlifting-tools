@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
-import pdfjs from "pdfjs-dist";
+import * as pdfjs from "pdfjs-dist";
 import { normalizeFullName, withNameOverride } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
-import config from "../config.js";
 
-const { OPS, Util, getDocument } = pdfjs;
+/** @type {typeof import("pdfjs-dist")} */
+const pdfjsApi = (pdfjs.default ?? pdfjs);
+const { OPS, Util, getDocument } = pdfjsApi;
 
 const CATEGORY_START_REGEX = /^[-+]\d+/;
 
@@ -105,8 +106,8 @@ function loadDisambiguationEntries() {
   if (disambiguationEntries) return disambiguationEntries;
 
   const disambiguationPath = path.resolve(
-    config.defaultOplDataRepoPath,
-    "lifter-data",
+    "scripts",
+    "data",
     "name-disambiguation.csv",
   );
   const entries = new Map();

@@ -67,7 +67,7 @@ describe("FIPL YEAR 2026", () => {
     });
   });
 
-  test.only("2606", async () => {
+  test("2606", async () => {
     const meetId = "2606";
     await convertFiplPdfToOplCsv(
       getInputPdfPath(meetId),

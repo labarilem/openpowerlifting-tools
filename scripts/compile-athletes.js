@@ -151,17 +151,29 @@ function main() {
   const outputDir = path.resolve("scripts", "data");
   fs.mkdirSync(outputDir, { recursive: true });
   const outputPath = path.join(outputDir, `${federation}-athletes.csv`);
+  const disambiguationSourcePath = path.resolve(
+    repoPath,
+    "lifter-data",
+    "name-disambiguation.csv",
+  );
+  const disambiguationOutputPath = path.join(outputDir, "name-disambiguation.csv");
 
   const lines = ["Name,BirthYear"];
   for (const athlete of athletes) {
     lines.push(`${escapeCsv(athlete.name)},${escapeCsv(athlete.birthYear)}`);
   }
   fs.writeFileSync(outputPath, `${lines.join("\n")}\n`, "utf8");
+  if (fs.existsSync(disambiguationSourcePath)) {
+    fs.copyFileSync(disambiguationSourcePath, disambiguationOutputPath);
+  } else {
+    fs.writeFileSync(disambiguationOutputPath, "", "utf8");
+  }
 
   console.log(`Federation: ${federation}`);
   console.log(`Meet folders scanned: ${meetIds.length}`);
   console.log(`Unique athletes: ${athletes.length}`);
   console.log(`Output: ${outputPath}`);
+  console.log(`Disambiguation output: ${disambiguationOutputPath}`);
 }
 
 main();
