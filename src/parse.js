@@ -815,13 +815,11 @@ function parseRow(
 
 /**
  * Parse PDF
- * @param {string} pdfPath
+ * @param {Uint8Array} pdfBytes
  * @param {{ isOpenDivision?: boolean }} [options]
  */
-async function parseEntriesFromFiplPdf(pdfPath, options = {}) {
-  const pdfBuffer = fs.readFileSync(pdfPath);
-  const uint8Array = new Uint8Array(pdfBuffer);
-  const pdf = await getDocument({ data: uint8Array }).promise;
+async function parseEntriesFromFiplPdfBytes(pdfBytes, options = {}) {
+  const pdf = await getDocument({ data: pdfBytes }).promise;
 
   const page1 = await pdf.getPage(1);
   const page1Content = await page1.getTextContent();
@@ -1128,19 +1126,33 @@ function entriesToOplCsv(
 }
 
 /**
+ * @param {Uint8Array | Buffer} pdfBytes
+ * @param {{ isOpenDivision?: boolean }} [options]
+ */
+export async function convertFiplPdfBytesToOplCsv(pdfBytes, options = {}) {
+  const normalizedBytes = Buffer.isBuffer(pdfBytes)
+    ? new Uint8Array(pdfBytes)
+    : pdfBytes;
+  const { entries: parsedEntries, meetType } = await parseEntriesFromFiplPdfBytes(
+    normalizedBytes instanceof Uint8Array
+      ? normalizedBytes
+      : new Uint8Array(normalizedBytes),
+    options,
+  );
+  return entriesToOplCsv(parsedEntries, meetType);
+}
+
+/**
  * @param {string} pdfPath
  * @param {string} outputPath
- * @param {{ isOpenDivision?: boolean }} [options] forwarded to {@link parseEntriesFromFiplPdf}
+ * @param {{ isOpenDivision?: boolean }} [options] forwarded to {@link convertFiplPdfBytesToOplCsv}
  */
 export async function convertFiplPdfToOplCsv(
   pdfPath,
   outputPath,
   options = {},
 ) {
-  const { entries: parsedEntries, meetType } = await parseEntriesFromFiplPdf(
-    pdfPath,
-    options,
-  );
-  const csv = entriesToOplCsv(parsedEntries, meetType);
+  const pdfBuffer = fs.readFileSync(pdfPath);
+  const csv = await convertFiplPdfBytesToOplCsv(pdfBuffer, options);
   fs.writeFileSync(outputPath, csv, "utf-8");
 }

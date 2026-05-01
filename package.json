@@ -9,6 +9,7 @@
     "set-column": "node scripts/set-column.js",
     "compile-athletes": "node scripts/compile-athletes.js",
     "update-calendar": "node scripts/update-calendar.js",
+    "generate": "node scripts/generate.js",
     "test": "node --test tests/parse/**/*.test.js",
     "test-only": "node --test --test-only tests/parse/**/*.test.js"
   },
