@@ -90,4 +90,16 @@ describe("FIPL YEAR 2026", () => {
       compareColumns: allColumns,
     });
   });
+
+  test("2608", async () => {
+    const meetId = "2608";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(meetId),
+      getOutputCsvPath(meetId),
+      { isOpenDivision: true },
+    );
+    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+      compareColumns: allColumns,
+    });
+  });
 });
