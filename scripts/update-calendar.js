@@ -241,8 +241,12 @@ async function main() {
   const calendarDir = path.join(scriptDir, "data", federation, "calendar");
   const url = `${BASE}/calendario-gare.asp?anno=${year}`;
 
+  const isGithubActions = process.env.GITHUB_ACTIONS === "true";
   const browser = await puppeteer.launch({
     headless: true,
+    // GitHub-hosted Linux runners can block Chromium sandboxing.
+    // Use no-sandbox flags only in that environment.
+    args: isGithubActions ? ["--no-sandbox", "--disable-setuid-sandbox"] : [],
   });
 
   try {
