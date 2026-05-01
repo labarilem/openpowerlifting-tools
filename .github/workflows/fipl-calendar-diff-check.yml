@@ -2,7 +2,7 @@ name: FIPL Calendar Diff Check
 
 on:
   schedule:
-    - cron: "0 5 * * *"
+    - cron: "15 22 * * *" # every day at 10:15 PM
   workflow_dispatch:
 
 permissions:
