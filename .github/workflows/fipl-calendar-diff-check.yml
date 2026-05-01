@@ -1,0 +1,113 @@
+name: FIPL Calendar Diff Check
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-fipl-calendar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 25
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check FIPL calendar updates from script output
+        id: check_calendar
+        run: |
+          output="$(node scripts/update-calendar.js fipl)"
+
+          if [ -z "$output" ]; then
+            echo "No FIPL calendar updates detected."
+            echo "has_updates=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          printf '%s' "$output" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{try{JSON.parse(s)}catch{console.error('update-calendar.js output is not valid JSON');process.exit(1)}})"
+
+          echo "FIPL calendar updates detected."
+          echo "has_updates=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "calendar_diff_json<<EOF"
+            echo "$output"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub issues for updates
+        if: steps.check_calendar.outputs.has_updates == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const diff = JSON.parse(process.env.CALENDAR_DIFF_JSON);
+            const allMeets = [
+              ...(diff.newMeetsWithResults || []),
+              ...(diff.meetsThatGainedResults || []),
+            ];
+
+            const meetsByDate = new Map();
+            for (const meet of allMeets) {
+              if (!meet || typeof meet.date !== "string" || meet.date.trim() === "") {
+                continue;
+              }
+              const date = meet.date.trim();
+              if (!meetsByDate.has(date)) {
+                meetsByDate.set(date, []);
+              }
+              meetsByDate.get(date).push(meet);
+            }
+
+            const { owner, repo } = context.repo;
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+            const openTitles = new Set(openIssues.map((issue) => issue.title));
+
+            for (const [meetDate, meets] of meetsByDate.entries()) {
+              const title = `Update fipl calendar ${meetDate}`;
+              if (openTitles.has(title)) {
+                core.info(`Skipping duplicate issue: ${title}`);
+                continue;
+              }
+
+              const body = [
+                "Daily FIPL calendar check detected updates for this date.",
+                "",
+                `Workflow run: https://github.com/${owner}/${repo}/actions/runs/${context.runId}`,
+                "",
+                "Detected meets:",
+                ...meets.map((meet) => `- ${meet.name} (id: ${meet.id})`),
+                "",
+                "Raw diff JSON:",
+                "```json",
+                JSON.stringify(diff, null, 2),
+                "```",
+              ].join("\n");
+
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+              });
+              openTitles.add(title);
+              core.info(`Created issue: ${title}`);
+            }
+        env:
+          CALENDAR_DIFF_JSON: ${{ steps.check_calendar.outputs.calendar_diff_json }}

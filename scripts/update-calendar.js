@@ -115,7 +115,7 @@ function printNewResultsReport(diff) {
     return;
   }
 
-  const pick = (m) => ({ id: m.id, name: m.name });
+  const pick = (m) => ({ id: m.id, name: m.name, date: m.date });
 
   console.log(
     JSON.stringify(
