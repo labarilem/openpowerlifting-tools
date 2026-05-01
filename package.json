@@ -2,17 +2,20 @@
   "name": "openpowerlifting-tools",
   "type": "module",
   "scripts": {
-    "import": "node scripts/import-meet.js",
+    "import-opl-meet": "node scripts/import-opl-meet.js",
+    "import-calendar-meet": "node scripts/import-calendar-meet.js",
     "format": "node scripts/format-number-column.js",
     "compare": "node scripts/compare.js",
     "set-column": "node scripts/set-column.js",
     "compile-athletes": "node scripts/compile-athletes.js",
+    "update-calendar": "node scripts/update-calendar.js fipl",
     "test": "node --test tests/parse/**/*.test.js",
-    "test:only": "node --test --test-only tests/parse/**/*.test.js"
+    "test-only": "node --test --test-only tests/parse/**/*.test.js"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^4.2.67"
+    "pdfjs-dist": "^4.2.67",
+    "puppeteer": "^24.42.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.0"

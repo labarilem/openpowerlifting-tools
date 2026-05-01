@@ -18,15 +18,29 @@ npm test
 Run:
 
 ```
-npm run import <federation> <meet id>
+npm run import-opl-meet <federation> <meet id>
 ```
 
 If you run it without arguments, the script will show its documentation.
 
-Example to import a FIPL meet from default repo path to default output dir:
+Example to import a FIPL meet from default OPL repo path to default output dir:
 
 ```
-npm run import fipl 2605
+npm run import-opl-meet fipl 2605
+```
+
+### Import one meet from the scraped calendar JSON
+
+Run:
+
+```
+npm run import-calendar-meet <federation> <year> <meetCalendarId> <outputDir>
+```
+
+Example (calendar id `6` in `2026.json` → same sources as test meet `2607`):
+
+```
+npm run import-calendar-meet fipl 2026 6 tests/dataset/fipl/2607
 ```
 
 ## Format columns
@@ -79,6 +93,23 @@ Output is written to:
 
 ```
 scripts/data/<federation>-athletes.csv
+```
+
+## Update federation calendar
+
+Run:
+
+```
+npm run update-calendar <federation> [year]
+```
+
+- **`federation`** (required): e.g. `fipl`
+- **`year`** (optional): defaults to the current calendar year
+
+Example:
+
+```
+npm run update-calendar fipl 2026
 ```
 
 ## Set column value

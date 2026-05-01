@@ -1,77 +1,13 @@
 #!/usr/bin/env node
 
 import fs from "fs";
-import http from "http";
-import https from "https";
 import path from "path";
-import { PDFDocument } from "pdf-lib";
 import config from "../config.js";
-
-/**
- * Downloads a PDF from the given URL and saves it to destPath.
- *
- * @param {string} url        - Full URL of the PDF to download
- * @param {string} destPath   - Local file path to write the PDF to
- * @returns {Promise<string>} - Resolves with destPath on success
- */
-function downloadPdf(url, destPath) {
-  return new Promise((resolve, reject) => {
-    const parsedUrl = new URL(url);
-    const transport = parsedUrl.protocol === "https:" ? https : http;
-
-    const handleResponse = (res) => {
-      // Follow redirects (301, 302, 307, 308)
-      if (
-        res.statusCode >= 300 &&
-        res.statusCode < 400 &&
-        res.headers.location
-      ) {
-        const redirectUrl = new URL(res.headers.location, url).toString();
-        return downloadPdf(redirectUrl, destPath).then(resolve).catch(reject);
-      }
-
-      if (res.statusCode !== 200) {
-        return reject(
-          new Error(`Failed to download PDF: HTTP ${res.statusCode}`),
-        );
-      }
-
-      const contentType = res.headers["content-type"] || "";
-      if (
-        !contentType.includes("pdf") &&
-        !contentType.includes("octet-stream")
-      ) {
-        console.warn(`Warning: unexpected content-type '${contentType}'`);
-      }
-
-      fs.mkdirSync(path.dirname(destPath), { recursive: true });
-
-      const fileStream = fs.createWriteStream(destPath);
-
-      res.pipe(fileStream);
-
-      fileStream.on("finish", () => {
-        fileStream.close();
-        resolve(destPath);
-      });
-
-      fileStream.on("error", (err) => {
-        fs.unlink(destPath, () => {}); // clean up partial file
-        reject(err);
-      });
-    };
-
-    const req = transport.get(url, handleResponse);
-
-    req.on("error", (err) => {
-      reject(err);
-    });
-
-    req.setTimeout(30_000, () => {
-      req.destroy(new Error("Request timed out after 30s"));
-    });
-  });
-}
+import {
+  downloadPdf,
+  mergePdfs,
+  readPdfUrls,
+} from "../src/lib/import-meet-pdf.js";
 
 function printUsage() {
   console.error("Usage: node import-meet.js <meetId> <repoPath> <outputDir>");
@@ -107,29 +43,6 @@ function copyDirContents(srcDir, destDir) {
       console.log(`Copied: ${entry.name}`);
     }
   }
-}
-
-function readPdfUrls(urlFilePath) {
-  const rawText = fs.readFileSync(urlFilePath, "utf8");
-  return rawText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-async function mergePdfs(inputPaths, outputPath) {
-  const mergedPdf = await PDFDocument.create();
-
-  for (const inputPath of inputPaths) {
-    const bytes = fs.readFileSync(inputPath);
-    const pdf = await PDFDocument.load(bytes);
-    const pageIndices = pdf.getPageIndices();
-    const copiedPages = await mergedPdf.copyPages(pdf, pageIndices);
-    copiedPages.forEach((page) => mergedPdf.addPage(page));
-  }
-
-  const mergedBytes = await mergedPdf.save();
-  fs.writeFileSync(outputPath, mergedBytes);
 }
 
 async function main() {
