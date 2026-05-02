@@ -7,7 +7,7 @@ import {
   downloadPdf,
   mergePdfs,
   readPdfUrls,
-} from "../src/lib/import-meet-pdf.js";
+} from "../packages/opl-tools/src/lib/import-meet-pdf.js";
 
 function printUsage() {
   console.error("Usage: node import-meet.js <meetId> <repoPath> <outputDir>");

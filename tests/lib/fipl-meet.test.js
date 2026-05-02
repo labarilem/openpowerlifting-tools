@@ -6,7 +6,7 @@ import {
   formatMeetName,
   isoDateFromResultsUrls,
   parseItalianCalendarDate,
-} from "../../src/lib/fipl-meet.js";
+} from "../../packages/opl-tools/src/lib/fipl-meet.js";
 
 test("parseItalianCalendarDate parses first date and month", () => {
   assert.equal(parseItalianCalendarDate("15/16 marzo", 2026), "2026-03-15");

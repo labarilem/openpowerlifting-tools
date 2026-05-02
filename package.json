@@ -1,6 +1,10 @@
 {
-  "name": "openpowerlifting-tools",
+  "name": "openpowerlifting-tools-monorepo",
+  "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "import-opl-meet": "node scripts/import-opl-meet.js",
     "import-calendar-meet": "node scripts/import-calendar-meet.js",
@@ -9,14 +13,10 @@
     "set-column": "node scripts/set-column.js",
     "compile-athletes": "node scripts/compile-athletes.js",
     "update-calendar": "node scripts/update-calendar.js",
-    "generate": "node scripts/generate.js",
+    "generate": "node packages/opl-tools/bin/cli.js generate",
+    "publish": "npm publish --workspace @labarilem/opl-tools --access public",
     "test": "node --test tests/parse/**/*.test.js",
     "test-only": "node --test --test-only tests/parse/**/*.test.js"
-  },
-  "dependencies": {
-    "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^4.2.67",
-    "puppeteer": "^24.42.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.0"

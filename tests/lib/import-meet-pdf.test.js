@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PDFDocument } from "pdf-lib";
-import { mergePdfBuffers } from "../../src/lib/import-meet-pdf.js";
+import { mergePdfBuffers } from "../../packages/opl-tools/src/lib/import-meet-pdf.js";
 
 async function createSinglePagePdf(text) {
   const pdf = await PDFDocument.create();

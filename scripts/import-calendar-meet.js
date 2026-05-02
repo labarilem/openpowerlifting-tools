@@ -3,14 +3,14 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { downloadPdf, mergePdfs } from "../src/lib/import-meet-pdf.js";
+import { downloadPdf, mergePdfs } from "../packages/opl-tools/src/lib/import-meet-pdf.js";
 import {
   buildMeetCsvContent,
   buildUrlFileContent,
   formatMeetName,
   isoDateFromResultsUrls,
   parseItalianCalendarDate,
-} from "../src/lib/fipl-meet.js";
+} from "../packages/opl-tools/src/lib/fipl-meet.js";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 

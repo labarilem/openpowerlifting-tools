@@ -8,9 +8,15 @@ Currently only the FIPL federation is supported.
 
 ### Generate one meet from FIPL website
 
-This script scrapes the FIPL calendar for a given year, selects one meet by calendar sequential id, downloads and merges result PDFs in memory, parses the merged PDF, and writes final OPL files to `outputDir`.
+This scrapes the FIPL calendar for a given year, selects one meet by calendar sequential id, downloads and merges result PDFs in memory, parses the merged PDF, and writes final OPL files to `outputDir`.
 
-Run:
+Run without installing using the published [`@labarilem/opl-tools`](https://www.npmjs.com/package/@labarilem/opl-tools) package:
+
+```
+npx @labarilem/opl-tools generate <federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]
+```
+
+Or, from this repo as a dev workspace:
 
 ```
 npm run generate <federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]
@@ -31,9 +37,10 @@ Output files in `outputDir`:
 - `URL`
 - `entries.csv`
 
-Example:
+Examples:
 
 ```
+npx @labarilem/opl-tools generate fipl 2026 8 ./out
 npm run generate fipl 2026 8 tests/dataset/fipl/2608
 ```
 
@@ -162,6 +169,36 @@ Example:
 
 ```
 npm run set-column fipl 2507 Division Open
+```
+
+## Release
+
+Release the NPM package from `packages/opl-tools`.
+
+1. Bump the package version in `packages/opl-tools/package.json` (or run `npm version <patch|minor|major>` inside `packages/opl-tools`).
+
+2. Verify NPM auth for the publishing account:
+
+```
+npm whoami
+```
+
+Run this if not already logged in:
+
+```
+npm login
+```
+
+4. Publish:
+
+```
+npm run publish
+```
+
+5. Verify the release on NPM:
+
+```
+npm view @labarilem/opl-tools version
 ```
 
 ## License

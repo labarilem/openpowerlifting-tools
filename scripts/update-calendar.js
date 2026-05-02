@@ -3,7 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { scrapeFiplCalendar } from "../src/lib/fipl-calendar.js";
+import { scrapeFiplCalendar } from "../packages/opl-tools/src/lib/fipl-calendar.js";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 

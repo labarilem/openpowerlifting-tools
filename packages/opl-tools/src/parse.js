@@ -1,8 +1,16 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import * as pdfjs from "pdfjs-dist";
+import { parseCsvLine } from "./lib/csv.js";
 import { normalizeFullName, withNameOverride } from "./lib/names.js";
 import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
+
+const DATA_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "data",
+);
 
 /** @type {typeof import("pdfjs-dist")} */
 const pdfjsApi = pdfjs.default ?? pdfjs;
@@ -113,38 +121,6 @@ function isWeightClassHeading(
 let disambiguationEntries = null;
 let fiplAthletesByBaseName = null;
 
-function parseCsvLine(line) {
-  const values = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const ch = line[i];
-    const next = line[i + 1];
-
-    if (ch === '"') {
-      if (inQuotes && next === '"') {
-        current += '"';
-        i += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (ch === "," && !inQuotes) {
-      values.push(current);
-      current = "";
-      continue;
-    }
-
-    current += ch;
-  }
-
-  values.push(current);
-  return values;
-}
-
 function toDisambiguationLookupKey(name) {
   return String(name || "")
     .trim()
@@ -160,11 +136,7 @@ function stripDisambiguationSuffix(name) {
 function loadDisambiguationEntries() {
   if (disambiguationEntries) return disambiguationEntries;
 
-  const disambiguationPath = path.resolve(
-    "scripts",
-    "data",
-    "name-disambiguation.csv",
-  );
+  const disambiguationPath = path.join(DATA_DIR, "name-disambiguation.csv");
   const entries = new Map();
   if (!fs.existsSync(disambiguationPath)) {
     disambiguationEntries = entries;
@@ -207,7 +179,7 @@ function loadDisambiguationEntries() {
 function loadFiplAthletesByBaseName() {
   if (fiplAthletesByBaseName) return fiplAthletesByBaseName;
 
-  const athletesPath = path.resolve("scripts", "data", "fipl", "athletes.csv");
+  const athletesPath = path.join(DATA_DIR, "fipl", "athletes.csv");
   const athletesByName = new Map();
   if (!fs.existsSync(athletesPath)) {
     fiplAthletesByBaseName = athletesByName;

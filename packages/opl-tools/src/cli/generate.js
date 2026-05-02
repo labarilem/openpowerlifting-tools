@@ -1,29 +1,29 @@
-#!/usr/bin/env node
-
 import fs from "node:fs";
 import path from "node:path";
-import { scrapeFiplCalendar } from "../src/lib/fipl-calendar.js";
+import { scrapeFiplCalendar } from "../lib/fipl-calendar.js";
 import {
   buildMeetCsvContent,
   buildUrlFileContent,
   formatMeetName,
   isoDateFromResultsUrls,
   parseItalianCalendarDate,
-} from "../src/lib/fipl-meet.js";
+} from "../lib/fipl-meet.js";
 import {
   downloadPdfToBuffer,
   mergePdfBuffers,
-} from "../src/lib/import-meet-pdf.js";
-import { convertFiplPdfBytesToOplCsv } from "../src/parse.js";
+} from "../lib/import-meet-pdf.js";
+import { convertFiplPdfBytesToOplCsv } from "../parse.js";
+
+export const GENERATE_USAGE =
+  "<federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]";
 
 const PARSE_OPTION_SPECS = {
   isOpenDivision: "boolean",
 };
 
-function printUsage() {
-  console.error(
-    "Usage: node scripts/generate.js <federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]",
-  );
+/** @param {string} message */
+function log(message) {
+  console.log(message);
 }
 
 function parsePositiveInt(name, rawValue) {
@@ -42,12 +42,13 @@ function parseBooleanOption(name, rawValue) {
 }
 
 /**
- * @param {string[]} argv
+ * @param {string[]} argv already sliced (no node/script entries)
  */
 function parseArgs(argv) {
   if (argv.length < 4) {
-    printUsage();
-    process.exit(1);
+    const err = new Error(`Usage: opl-tools generate ${GENERATE_USAGE}`);
+    err.isUsageError = true;
+    throw err;
   }
 
   const [federation, yearRaw, meetIdRaw, outputDir, ...rest] = argv;
@@ -81,10 +82,11 @@ function parseArgs(argv) {
   return { federation, year, meetId, outputDir, options };
 }
 
-async function main() {
-  const { federation, year, meetId, outputDir, options } = parseArgs(
-    process.argv.slice(2),
-  );
+/**
+ * @param {string[]} argv already sliced (e.g. process.argv.slice(3) from the bin)
+ */
+export async function runGenerate(argv) {
+  const { federation, year, meetId, outputDir, options } = parseArgs(argv);
 
   if (federation !== "fipl") {
     throw new Error(
@@ -92,6 +94,12 @@ async function main() {
     );
   }
 
+  const finalOutputDir = path.resolve(outputDir);
+  log(
+    `opl-tools generate: federation=${federation} year=${year} meetId=${meetId} output=${finalOutputDir}`,
+  );
+
+  log(`Fetching FIPL calendar for ${year}...`);
   const calendar = await scrapeFiplCalendar(year);
   const meet = calendar.find((entry) => entry.id === meetId);
   if (!meet) {
@@ -105,13 +113,21 @@ async function main() {
     throw new Error(`Meet ${meetId} has no resultsUrls`);
   }
 
+  log(`Meet: ${formatMeetName(meet.name)} (${resultsUrls.length} result PDF URL(s))`);
+
   const pdfBuffers = [];
-  for (const url of resultsUrls) {
+  for (let i = 0; i < resultsUrls.length; i += 1) {
+    const url = resultsUrls[i];
+    log(`Downloading PDF ${i + 1}/${resultsUrls.length}...`);
     pdfBuffers.push(await downloadPdfToBuffer(url, { timeoutMs: 60_000 }));
+  }
+  if (pdfBuffers.length > 1) {
+    log("Merging PDFs...");
   }
   const mergedPdfBytes =
     pdfBuffers.length === 1 ? pdfBuffers[0] : await mergePdfBuffers(pdfBuffers);
 
+  log("Parsing merged PDF to OpenPowerlifting CSV...");
   const isoFromCalendar = parseItalianCalendarDate(meet.date, year);
   const isoDate = isoDateFromResultsUrls(resultsUrls, isoFromCalendar);
   const meetName = formatMeetName(meet.name);
@@ -124,14 +140,10 @@ async function main() {
   const urlFile = buildUrlFileContent(resultsUrls);
   const entriesCsv = await convertFiplPdfBytesToOplCsv(mergedPdfBytes, options);
 
-  const finalOutputDir = path.resolve(outputDir);
   fs.mkdirSync(finalOutputDir, { recursive: true });
+  log("Writing meet.csv, URL, entries.csv...");
   fs.writeFileSync(path.join(finalOutputDir, "meet.csv"), meetCsv, "utf8");
   fs.writeFileSync(path.join(finalOutputDir, "URL"), urlFile, "utf8");
   fs.writeFileSync(path.join(finalOutputDir, "entries.csv"), entriesCsv, "utf8");
+  log("Done.");
 }
-
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exitCode = 1;
-});

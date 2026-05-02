@@ -2,6 +2,8 @@
 
 import fs from "fs";
 
+import { joinCsvRow, parseCsvLine } from "../packages/opl-tools/src/lib/csv.js";
+
 function printUsage() {
   console.error(
     "Usage: node scripts/format-numer-column.js <csvPath> <columnName> <decimalDigits>",
@@ -32,18 +34,18 @@ function formatNumericColumn(csvText, columnName, decimalDigits) {
     throw new Error("CSV file is empty.");
   }
 
-  const headers = lines[0].split(",");
-  const columnIndex = headers.indexOf(columnName);
+  const headerCells = parseCsvLine(lines[0]);
+  const columnIndex = headerCells.indexOf(columnName);
   if (columnIndex === -1) {
     throw new Error(`Column "${columnName}" not found.`);
   }
 
-  const outputLines = [lines[0]];
+  const outputLines = [joinCsvRow(headerCells)];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (line === "") continue;
 
-    const cells = line.split(",");
+    const cells = parseCsvLine(line);
     if (columnIndex >= cells.length) {
       outputLines.push(line);
       continue;
@@ -60,7 +62,7 @@ function formatNumericColumn(csvText, columnName, decimalDigits) {
       cells[columnIndex] = numericValue.toFixed(decimalDigits);
     }
 
-    outputLines.push(cells.join(","));
+    outputLines.push(joinCsvRow(cells));
   }
 
   const result = outputLines.join("\n");

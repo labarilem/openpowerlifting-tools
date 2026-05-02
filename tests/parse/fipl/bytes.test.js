@@ -6,7 +6,7 @@ import path from "node:path";
 import {
   convertFiplPdfBytesToOplCsv,
   convertFiplPdfToOplCsv,
-} from "../../../src/parse.js";
+} from "../../../packages/opl-tools/src/parse.js";
 import { getInputPdfPath } from "../../utils/dataset.js";
 
 test("convertFiplPdfBytesToOplCsv matches file-based conversion", async () => {

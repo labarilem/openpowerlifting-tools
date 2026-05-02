@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { parseCsvLine } from "../packages/opl-tools/src/lib/csv.js";
+
 function printUsage() {
   console.error(
     "Usage: node scripts/compare-csv-names.js <federation> <meetId> [columnName]",
@@ -23,8 +25,8 @@ function parseCsv(content) {
     throw new Error("CSV file is empty.");
   }
 
-  const headers = lines[0].split(",");
-  const rows = lines.slice(1).map((line) => line.split(","));
+  const headers = parseCsvLine(lines[0]);
+  const rows = lines.slice(1).map((line) => parseCsvLine(line));
   return { headers, rows };
 }
 

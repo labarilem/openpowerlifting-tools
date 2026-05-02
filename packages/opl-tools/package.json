@@ -1,0 +1,43 @@
+{
+  "name": "@labarilem/opl-tools",
+  "version": "1.0.0",
+  "description": "CLI tools to convert powerlifting meet results into OpenPowerlifting CSV format. Currently supports the FIPL federation.",
+  "keywords": [
+    "powerlifting",
+    "openpowerlifting",
+    "fipl",
+    "cli",
+    "csv"
+  ],
+  "license": "MIT",
+  "author": "labarilem",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/labarilem/openpowerlifting-tools.git",
+    "directory": "packages/opl-tools"
+  },
+  "homepage": "https://github.com/labarilem/openpowerlifting-tools#readme",
+  "bugs": "https://github.com/labarilem/openpowerlifting-tools/issues",
+  "type": "module",
+  "bin": {
+    "opl-tools": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "data",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.2.67",
+    "puppeteer": "^24.42.0"
+  }
+}

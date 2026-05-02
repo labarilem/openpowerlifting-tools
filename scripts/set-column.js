@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { joinCsvRow, parseCsvLine } from "../packages/opl-tools/src/lib/csv.js";
+
 function printUsage() {
   console.error(
     "Usage: node scripts/set-column.js <federation> <meetId> <columnName> <columnValue>",
@@ -10,46 +12,6 @@ function printUsage() {
   console.error("");
   console.error("Example:");
   console.error('  node scripts/set-column.js fipl 2507 Division "Senior"');
-}
-
-function parseCsvLine(line) {
-  const values = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const ch = line[i];
-    const next = line[i + 1];
-
-    if (ch === '"') {
-      if (inQuotes && next === '"') {
-        current += '"';
-        i += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (ch === "," && !inQuotes) {
-      values.push(current);
-      current = "";
-      continue;
-    }
-
-    current += ch;
-  }
-
-  values.push(current);
-  return values;
-}
-
-function escapeCsv(value) {
-  const raw = String(value ?? "");
-  if (raw.includes('"') || raw.includes(",") || raw.includes("\n")) {
-    return `"${raw.replaceAll('"', '""')}"`;
-  }
-  return raw;
 }
 
 function main() {
@@ -98,10 +60,10 @@ function main() {
     const cells = parseCsvLine(line);
     while (cells.length < headers.length) cells.push("");
     cells[columnIndex] = columnValue;
-    return cells.map(escapeCsv).join(",");
+    return joinCsvRow(cells);
   });
 
-  const output = [headers.map(escapeCsv).join(","), ...updatedRows].join("\n");
+  const output = [joinCsvRow(headers), ...updatedRows].join("\n");
   fs.writeFileSync(entriesPath, `${output}\n`, "utf8");
 
   console.log(`Updated column "${columnName}" in: ${entriesPath}`);
