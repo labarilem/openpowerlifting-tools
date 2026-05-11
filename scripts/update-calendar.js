@@ -3,7 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { scrapeFiplCalendar } from "../packages/opl-tools/src/lib/fipl-calendar.js";
+import { getFederationOrThrow } from "../packages/opl-tools/src/federations/index.js";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -129,16 +129,15 @@ function printNewResultsReport(diff) {
 
 async function main() {
   const { federation, year } = parseArgs(process.argv.slice(2));
-
-  if (federation !== "fipl") {
-    console.error(
-      `Unsupported federation "${federation}". Only "fipl" is supported.`,
+  const federationModule = getFederationOrThrow(federation);
+  if (typeof federationModule.scrapeCalendar !== "function") {
+    throw new Error(
+      `Federation "${federation}" does not support calendar scraping.`,
     );
-    process.exit(1);
   }
 
   const calendarDir = path.join(scriptDir, "data", federation, "calendar");
-  const meetsWithIds = await scrapeFiplCalendar(year);
+  const meetsWithIds = await federationModule.scrapeCalendar(year);
   await fs.mkdir(calendarDir, { recursive: true });
   const outPath = path.join(calendarDir, `${year}.json`);
 

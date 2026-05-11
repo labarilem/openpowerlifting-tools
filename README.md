@@ -2,7 +2,12 @@
 
 Set of tools to programmatically convert powerlifting meets data from source format to OpenPowerlifting CSV format.
 
-Currently only the FIPL federation is supported.
+The published CLI interface is:
+
+`npx @labarilem/opl-tools generate <federation> <year> <meetId> <outputDir> [...]`
+
+The repo currently ships with the `fipl` federation adapter. Additional federations
+can plug into the same interface once their adapters are implemented.
 
 ## Usage
 
@@ -22,14 +27,14 @@ Or, from this repo as a dev workspace:
 npm run generate <federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]
 ```
 
-- **`federation`** (required): currently only `fipl`
+- **`federation`** (required): currently `fipl`
 - **`year`** (required): positive integer calendar year
 - **`meetId`** (required): positive integer id from that year's scraped calendar
 - **`outputDir`** (required): destination directory for final outputs
 
 Optional flags:
 
-- **`--isOpenDivision <true|false>`**: forwarded to FIPL parser option, in some cases it is needed to overrider this to get the correct division for a meet.
+- **`--isOpenDivision <true|false>`**: forwarded to the active federation parser; currently this is used by the FIPL parser.
 
 Output files in `outputDir`:
 
@@ -135,7 +140,7 @@ npm run compile-athletes fipl
 Output is written to:
 
 ```
-scripts/data/<federation>-athletes.csv
+packages/opl-tools/data/<federation>/athletes.csv
 ```
 
 ## Update federation calendar

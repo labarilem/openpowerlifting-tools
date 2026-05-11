@@ -4,13 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { downloadPdf, mergePdfs } from "../packages/opl-tools/src/lib/import-meet-pdf.js";
-import {
-  buildMeetCsvContent,
-  buildUrlFileContent,
-  formatMeetName,
-  isoDateFromResultsUrls,
-  parseItalianCalendarDate,
-} from "../packages/opl-tools/src/lib/fipl-meet.js";
+import { getFederationOrThrow } from "../packages/opl-tools/src/federations/index.js";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,6 +46,12 @@ async function main() {
   const { federation, year, meetCalendarId, outputDir } = parseArgs(
     process.argv.slice(2),
   );
+  const federationModule = getFederationOrThrow(federation);
+  if (typeof federationModule.buildMeetArtifactsFromCalendarEntry !== "function") {
+    throw new Error(
+      `Federation "${federation}" cannot build meet artifacts from calendar entries.`,
+    );
+  }
 
   const calendarPath = path.join(
     scriptDir,
@@ -77,33 +77,20 @@ async function main() {
     process.exit(1);
   }
 
-  const resultsUrls = Array.isArray(meet.resultsUrls)
-    ? meet.resultsUrls.filter((u) => typeof u === "string" && u.trim())
-    : [];
-
-  if (resultsUrls.length === 0) {
-    console.error(
-      `Meet ${meetCalendarId} has no resultsUrls; cannot build input.pdf`,
-    );
-    process.exit(1);
-  }
-
   const destDir = path.resolve(outputDir);
   fs.mkdirSync(destDir, { recursive: true });
 
+  const { resultsUrls, meetCsv, urlFile } =
+    federationModule.buildMeetArtifactsFromCalendarEntry(meet, year, federation);
+
   fs.writeFileSync(
     path.join(destDir, "URL"),
-    buildUrlFileContent(resultsUrls),
+    urlFile,
     "utf8",
   );
-
-  const isoFromCalendar = parseItalianCalendarDate(meet.date, year);
-  const isoDate = isoDateFromResultsUrls(resultsUrls, isoFromCalendar);
-  const meetName = formatMeetName(meet.name);
-  const federationUpper = federation.toUpperCase();
   fs.writeFileSync(
     path.join(destDir, "meet.csv"),
-    buildMeetCsvContent(federationUpper, isoDate, meetName, meet.location),
+    meetCsv,
     "utf8",
   );
 

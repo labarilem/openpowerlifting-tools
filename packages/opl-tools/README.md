@@ -2,7 +2,12 @@
 
 CLI tools to convert powerlifting meet results into OpenPowerlifting CSV format.
 
-Currently the only supported federation is FIPL.
+This package keeps a stable CLI interface:
+
+`npx @labarilem/opl-tools generate <federation> <year> <meetId> <outputDir> [...]`
+
+It currently ships with the `fipl` federation adapter. Additional federations can
+plug into the same command shape once their adapters are implemented.
 
 ## Usage
 
@@ -12,16 +17,19 @@ Run without installing using `npx`:
 npx @labarilem/opl-tools generate <federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]
 ```
 
-- **`federation`** (required): currently only `fipl`
+- **`federation`** (required): currently `fipl`
 - **`year`** (required): positive integer calendar year
 - **`meetId`** (required): positive integer id from that year's scraped calendar
 - **`outputDir`** (required): destination directory for final outputs
 
 Optional flags:
 
-- **`--isOpenDivision <true|false>`**: forwarded to the FIPL parser; in some cases this is needed to get the correct division for a meet.
+- **`--isOpenDivision <true|false>`**: forwarded to the active federation parser; currently this is used by the FIPL parser.
 
-The command scrapes the FIPL calendar for the given year, selects one meet by its calendar sequential id, downloads and merges the result PDFs in memory, parses the merged PDF, and writes the final OPL files to `outputDir`.
+The command resolves the requested federation adapter, scrapes that federation's
+calendar for the given year, selects one meet by its calendar sequential id,
+downloads and merges the result PDFs in memory, parses the merged PDF, and writes
+the final OPL files to `outputDir`.
 
 Output files in `outputDir`:
 

@@ -1,5 +1,5 @@
 import { describe, test } from "node:test";
-import { convertFiplPdfToOplCsv } from "../../../packages/opl-tools/src/parse.js";
+import { convertFiplPdfToOplCsv } from "../../../packages/opl-tools/src/federations/fipl/parse.js";
 import { compareCSVFiles } from "../../utils/csv.js";
 import {
   getInputPdfPath,

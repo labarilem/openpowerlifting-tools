@@ -5,7 +5,7 @@
       "type": "node",
       "request": "launch",
       "name": "Parse PDF",
-      "program": "${workspaceFolder}/src/parse.js",
+      "program": "${workspaceFolder}/packages/opl-tools/src/federations/fipl/parse.js",
       "restart": true,
       "console": "integratedTerminal",
       "skipFiles": [

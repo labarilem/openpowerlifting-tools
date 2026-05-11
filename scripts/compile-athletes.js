@@ -111,14 +111,18 @@ function main() {
   });
 
   const outputDir = path.resolve("packages", "opl-tools", "data");
-  fs.mkdirSync(outputDir, { recursive: true });
-  const outputPath = path.join(outputDir, federation, "athletes.csv");
+  const federationOutputDir = path.join(outputDir, federation);
+  fs.mkdirSync(federationOutputDir, { recursive: true });
+  const outputPath = path.join(federationOutputDir, "athletes.csv");
   const disambiguationSourcePath = path.resolve(
     repoPath,
     "lifter-data",
     "name-disambiguation.csv",
   );
-  const disambiguationOutputPath = path.join(outputDir, "name-disambiguation.csv");
+  const disambiguationOutputPath = path.join(
+    federationOutputDir,
+    "name-disambiguation.csv",
+  );
 
   const lines = ["Name,BirthYear"];
   for (const athlete of athletes) {

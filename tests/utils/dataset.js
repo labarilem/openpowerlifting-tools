@@ -1,11 +1,30 @@
-export function getInputPdfPath(meetId) {
-  return `./tests/dataset/fipl/${meetId}/input.pdf`;
+function resolveFederationAndMeetId(firstArg, secondArg) {
+  if (secondArg === undefined) {
+    return { federation: "fipl", meetId: firstArg };
+  }
+  return { federation: firstArg, meetId: secondArg };
 }
 
-export function getOutputCsvPath(meetId) {
-  return `./tests/dataset/fipl/${meetId}/entries-parsed.csv`;
+export function getInputPdfPath(federationOrMeetId, maybeMeetId) {
+  const { federation, meetId } = resolveFederationAndMeetId(
+    federationOrMeetId,
+    maybeMeetId,
+  );
+  return `./tests/dataset/${federation}/${meetId}/input.pdf`;
 }
 
-export function getReferenceCsvPath(meetId) {
-  return `./tests/dataset/fipl/${meetId}/entries.csv`;
+export function getOutputCsvPath(federationOrMeetId, maybeMeetId) {
+  const { federation, meetId } = resolveFederationAndMeetId(
+    federationOrMeetId,
+    maybeMeetId,
+  );
+  return `./tests/dataset/${federation}/${meetId}/entries-parsed.csv`;
+}
+
+export function getReferenceCsvPath(federationOrMeetId, maybeMeetId) {
+  const { federation, meetId } = resolveFederationAndMeetId(
+    federationOrMeetId,
+    maybeMeetId,
+  );
+  return `./tests/dataset/${federation}/${meetId}/entries.csv`;
 }

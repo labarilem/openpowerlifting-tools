@@ -2,12 +2,14 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "node:url";
 import * as pdfjs from "pdfjs-dist";
-import { parseCsvLine } from "./lib/csv.js";
-import { normalizeFullName, withNameOverride } from "./lib/names.js";
-import { dedupeRects, isInAnyRectangle, isRedColor } from "./lib/pdf.js";
+import { parseCsvLine } from "../../lib/csv.js";
+import { normalizeFullName, withNameOverride } from "../../lib/names.js";
+import { dedupeRects, isInAnyRectangle, isRedColor } from "../../lib/pdf.js";
 
 const DATA_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
   "..",
   "data",
 );
@@ -136,7 +138,11 @@ function stripDisambiguationSuffix(name) {
 function loadDisambiguationEntries() {
   if (disambiguationEntries) return disambiguationEntries;
 
-  const disambiguationPath = path.join(DATA_DIR, "name-disambiguation.csv");
+  const disambiguationPath = path.join(
+    DATA_DIR,
+    "fipl",
+    "name-disambiguation.csv",
+  );
   const entries = new Map();
   if (!fs.existsSync(disambiguationPath)) {
     disambiguationEntries = entries;
@@ -1105,12 +1111,13 @@ export async function convertFiplPdfBytesToOplCsv(pdfBytes, options = {}) {
   const normalizedBytes = Buffer.isBuffer(pdfBytes)
     ? new Uint8Array(pdfBytes)
     : pdfBytes;
-  const { entries: parsedEntries, meetType } = await parseEntriesFromFiplPdfBytes(
-    normalizedBytes instanceof Uint8Array
-      ? normalizedBytes
-      : new Uint8Array(normalizedBytes),
-    options,
-  );
+  const { entries: parsedEntries, meetType } =
+    await parseEntriesFromFiplPdfBytes(
+      normalizedBytes instanceof Uint8Array
+        ? normalizedBytes
+        : new Uint8Array(normalizedBytes),
+      options,
+    );
   return entriesToOplCsv(parsedEntries, meetType);
 }
 
@@ -1128,3 +1135,6 @@ export async function convertFiplPdfToOplCsv(
   const csv = await convertFiplPdfBytesToOplCsv(pdfBuffer, options);
   fs.writeFileSync(outputPath, csv, "utf-8");
 }
+
+export const convertPdfBytesToOplCsv = convertFiplPdfBytesToOplCsv;
+export const convertPdfToOplCsv = convertFiplPdfToOplCsv;

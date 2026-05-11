@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer";
 
-const BASE = "https://www.powerliftingitalia-fipl.it";
+const FIPL_BASE_URL = "https://www.powerliftingitalia-fipl.it";
 
 /**
  * @returns {Promise<Array<{ name: string; date: string; location: string; description: string; resultsUrls: string[] }>>}
@@ -98,7 +98,7 @@ async function scrapeMeets(page) {
     }
 
     return meets;
-  }, BASE);
+  }, FIPL_BASE_URL);
 }
 
 /**
@@ -107,7 +107,7 @@ async function scrapeMeets(page) {
  * @returns {Promise<Array<{ id: number; name: string; date: string; location: string; description: string; resultsUrls: string[] }>>}
  */
 export async function scrapeFiplCalendar(year) {
-  const url = `${BASE}/calendario-gare.asp?anno=${year}`;
+  const url = `${FIPL_BASE_URL}/calendario-gare.asp?anno=${year}`;
   const isGithubActions = process.env.GITHUB_ACTIONS === "true";
   const browser = await puppeteer.launch({
     headless: true,
@@ -127,3 +127,5 @@ export async function scrapeFiplCalendar(year) {
     await browser.close();
   }
 }
+
+export const scrapeCalendar = scrapeFiplCalendar;

@@ -1,4 +1,4 @@
-import { toTitleCase } from "./format.js";
+import { toTitleCase } from "../../lib/format.js";
 
 const IT_MONTHS = new Map([
   ["gennaio", 1],
@@ -71,7 +71,10 @@ export function formatMeetName(calendarName) {
   s = toTitleCase(s);
   s = s.replace(/^(\d+)\^\s+/, "$1° ");
   s = s.replace(/^(\d)\s+/, "$1° ");
-  s = s.replace(/\bDi\b/g, "di").replace(/\bDa\b/g, "da").replace(/\bE\b/g, "e");
+  s = s
+    .replace(/\bDi\b/g, "di")
+    .replace(/\bDa\b/g, "da")
+    .replace(/\bE\b/g, "e");
   return s
     .replace(/\bPl\b/g, "PL")
     .replace(/\bSj\b/g, "SJ")
@@ -127,10 +130,9 @@ export function buildMeetCsvContent(
     csvEscape(meetTown),
     csvEscape(meetName),
   ].join(",");
-  return [
-    "Federation,Date,MeetCountry,MeetState,MeetTown,MeetName",
-    row,
-  ].join("\n");
+  return ["Federation,Date,MeetCountry,MeetState,MeetTown,MeetName", row].join(
+    "\n",
+  );
 }
 
 /**
@@ -138,4 +140,41 @@ export function buildMeetCsvContent(
  */
 export function buildUrlFileContent(urls) {
   return urls.join("\n");
+}
+
+/**
+ * @param {{ id?: number, name: string, date: string, location: string, resultsUrls?: string[] }} meet
+ * @param {number} year
+ * @param {string} federation
+ */
+export function buildMeetArtifactsFromCalendarEntry(
+  meet,
+  year,
+  federation = "fipl",
+) {
+  const resultsUrls = Array.isArray(meet.resultsUrls)
+    ? meet.resultsUrls.filter((u) => typeof u === "string" && u.trim())
+    : [];
+
+  if (resultsUrls.length === 0) {
+    const meetLabel = meet.id ? `Meet ${meet.id}` : "Meet";
+    throw new Error(`${meetLabel} has no resultsUrls`);
+  }
+
+  const isoFromCalendar = parseItalianCalendarDate(meet.date, year);
+  const isoDate = isoDateFromResultsUrls(resultsUrls, isoFromCalendar);
+  const meetName = formatMeetName(meet.name);
+
+  return {
+    isoDate,
+    meetName,
+    resultsUrls,
+    meetCsv: buildMeetCsvContent(
+      federation.toUpperCase(),
+      isoDate,
+      meetName,
+      meet.location,
+    ),
+    urlFile: buildUrlFileContent(resultsUrls),
+  };
 }
