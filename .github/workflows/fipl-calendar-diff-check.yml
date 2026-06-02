@@ -142,26 +142,35 @@ jobs:
               return max;
             }
 
-            function buildImportCommandByMeetId(meets) {
+            function buildMeetFolderByMeetId(meets) {
               const sorted = [...meets].sort((a, b) => a.id - b.id);
               let nextSuffix = maxExistingMeetSuffix();
-              const commandByMeetId = new Map();
+              const folderByMeetId = new Map();
 
               for (const meet of sorted) {
                 const existingFolder = findExistingMeetFolder(meet.name);
                 const folderId =
                   existingFolder ??
                   `${yearPrefix}${String((nextSuffix += 1)).padStart(2, "0")}`;
-                commandByMeetId.set(
-                  meet.id,
-                  `npm run import-calendar-meet ${federation} ${year} ${meet.id} tests/dataset/${federation}/${folderId}`,
-                );
+                folderByMeetId.set(meet.id, folderId);
               }
 
-              return commandByMeetId;
+              return folderByMeetId;
             }
 
-            const importCommandByMeetId = buildImportCommandByMeetId(allMeets);
+            const meetFolderByMeetId = buildMeetFolderByMeetId(allMeets);
+            const importCommandByMeetId = new Map(
+              [...meetFolderByMeetId.entries()].map(([meetId, folderId]) => [
+                meetId,
+                `npm run import-calendar-meet ${federation} ${year} ${meetId} tests/dataset/${federation}/${folderId}`,
+              ]),
+            );
+            const generateCommandByMeetId = new Map(
+              [...meetFolderByMeetId.entries()].map(([meetId, folderId]) => [
+                meetId,
+                `npx @labarilem/opl-tools generate ${federation} ${year} ${meetId} meet-data/${federation}/${folderId}`,
+              ]),
+            );
 
             const meetsByDate = new Map();
             for (const meet of allMeets) {
@@ -194,6 +203,9 @@ jobs:
               const importCommands = meets.map((meet) =>
                 importCommandByMeetId.get(meet.id),
               );
+              const generateCommands = meets.map((meet) =>
+                generateCommandByMeetId.get(meet.id),
+              );
               const updateCalendarCommand = `npm run update-calendar ${federation} ${year}`;
               const body = [
                 "Daily FIPL calendar check detected updates for this date.",
@@ -212,6 +224,19 @@ jobs:
                 "Import meets into the test dataset (run from the repository root):",
                 "```bash",
                 ...importCommands,
+                "```",
+                "",
+                "Generate OPL data files for the official openpowerlifting repo (run from the opl-data repository root):",
+                "",
+                "To automatically generate OPL data files for FIPL meets you can use the @labarilem/opl-tools NPM package.",
+                "Requirements: Node.js and NPM must be installed on your system. Guide: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm",
+                "Usage: npx @labarilem/opl-tools generate <federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]",
+                `Example: npx @labarilem/opl-tools generate fipl ${year} 8 meet-data/fipl/${yearPrefix}08`,
+                "Docs: https://www.npmjs.com/package/@labarilem/opl-tools",
+                "Source code: https://github.com/labarilem/openpowerlifting-tools",
+                "",
+                "```bash",
+                ...generateCommands,
                 "```",
                 "",
                 "Raw diff JSON:",

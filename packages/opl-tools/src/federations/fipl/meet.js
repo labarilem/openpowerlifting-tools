@@ -86,7 +86,7 @@ export function formatMeetName(calendarName) {
 /**
  * FIPL result PDF paths often embed the meet date: /public/gare/YYYY-MM-DD-id-...
  * @param {string[]} resultsUrls
- * @param {string} fallbackIso
+ * @param {string | null} fallbackIso
  */
 export function isoDateFromResultsUrls(resultsUrls, fallbackIso) {
   for (const u of resultsUrls) {
@@ -94,6 +94,24 @@ export function isoDateFromResultsUrls(resultsUrls, fallbackIso) {
     if (m) return `${m[1]}-${m[2]}-${m[3]}`;
   }
   return fallbackIso;
+}
+
+/**
+ * Prefer the scraped calendar date; fall back to dates embedded in result PDF URLs.
+ * @param {string} dateStr
+ * @param {number} calendarYear
+ * @param {string[]} resultsUrls
+ */
+export function resolveMeetIsoDate(dateStr, calendarYear, resultsUrls) {
+  try {
+    return parseItalianCalendarDate(dateStr, calendarYear);
+  } catch {
+    const fromUrl = isoDateFromResultsUrls(resultsUrls, null);
+    if (fromUrl) return fromUrl;
+    throw new Error(
+      `Could not parse meet date from calendar or result URLs: "${dateStr}"`,
+    );
+  }
 }
 
 function meetTownFromLocation(locRaw) {
@@ -161,8 +179,7 @@ export function buildMeetArtifactsFromCalendarEntry(
     throw new Error(`${meetLabel} has no resultsUrls`);
   }
 
-  const isoFromCalendar = parseItalianCalendarDate(meet.date, year);
-  const isoDate = isoDateFromResultsUrls(resultsUrls, isoFromCalendar);
+  const isoDate = resolveMeetIsoDate(meet.date, year, resultsUrls);
   const meetName = formatMeetName(meet.name);
 
   return {

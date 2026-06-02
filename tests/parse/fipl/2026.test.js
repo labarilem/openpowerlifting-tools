@@ -153,4 +153,16 @@ describe("FIPL YEAR 2026", () => {
       },
     );
   });
+
+  test("2610", async () => {
+    const meetId = "2610";
+    await convertFiplPdfToOplCsv(
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
+    );
+    compareCSVFiles(
+      getOutputCsvPath(federation, meetId),
+      getReferenceCsvPath(federation, meetId),
+    );
+  });
 });
