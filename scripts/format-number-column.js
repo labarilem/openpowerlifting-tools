@@ -6,7 +6,18 @@ import { joinCsvRow, parseCsvLine } from "../packages/opl-tools/src/lib/csv.js";
 
 function printUsage() {
   console.error(
-    "Usage: node scripts/format-numer-column.js <csvPath> <columnName> <decimalDigits>",
+    "Usage: node scripts/format-number-column.js <csvPath> <columnName> <decimalDigits>",
+  );
+  console.error("");
+  console.error("  csvPath        - Path to the CSV file (updated in place)");
+  console.error("  columnName     - Header name of the column to format");
+  console.error(
+    "  decimalDigits  - Number of digits after the decimal point (non-negative integer)",
+  );
+  console.error("");
+  console.error("Example:");
+  console.error(
+    "  node scripts/format-number-column.js tests/dataset/fipl/2601/entries.csv TotalKg 2",
   );
 }
 

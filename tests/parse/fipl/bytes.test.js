@@ -10,8 +10,9 @@ import {
 import { getInputPdfPath } from "../../utils/dataset.js";
 
 test("convertFiplPdfBytesToOplCsv matches file-based conversion", async () => {
+  const federation = "fipl";
   const meetId = "2608";
-  const inputPath = getInputPdfPath(meetId);
+  const inputPath = getInputPdfPath(federation, meetId);
   const options = { isOpenDivision: true };
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "opl-tools-"));
   const outputPath = path.join(tempDir, "entries.csv");

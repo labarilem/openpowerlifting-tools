@@ -13,14 +13,16 @@ import {
 } from "../../utils/parser.js";
 
 describe("FIPL YEAR 2025", () => {
+  const federation = "fipl";
+
   test("2501", async () => {
     const meetId = "2501";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: true },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: benchOnlyColumns,
     });
@@ -29,11 +31,11 @@ describe("FIPL YEAR 2025", () => {
   test("2502", async () => {
     const meetId = "2502";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: true },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: benchOnlyColumns,
     });
@@ -42,11 +44,11 @@ describe("FIPL YEAR 2025", () => {
   test("2503", async () => {
     const meetId = "2503";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -55,11 +57,11 @@ describe("FIPL YEAR 2025", () => {
   test("2504", async () => {
     const meetId = "2504";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -68,10 +70,10 @@ describe("FIPL YEAR 2025", () => {
   test("2506", async () => {
     const meetId = "2506";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: deadliftOnlyColumns,
     });
@@ -80,10 +82,10 @@ describe("FIPL YEAR 2025", () => {
   test("2507", async () => {
     const meetId = "2507";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: deadliftOnlyColumns,
     });
@@ -92,10 +94,10 @@ describe("FIPL YEAR 2025", () => {
   test("2508", async () => {
     const meetId = "2508";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: deadliftOnlyColumns,
     });
@@ -104,11 +106,11 @@ describe("FIPL YEAR 2025", () => {
   test("2509", async () => {
     const meetId = "2509";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: true },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -117,11 +119,11 @@ describe("FIPL YEAR 2025", () => {
   test("2510", async () => {
     const meetId = "2510";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: true },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -130,11 +132,11 @@ describe("FIPL YEAR 2025", () => {
   test("2511", async () => {
     const meetId = "2511";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: true },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -143,11 +145,11 @@ describe("FIPL YEAR 2025", () => {
   test("2512", async () => {
     const meetId = "2512";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: benchOnlyColumns,
     });
@@ -156,11 +158,11 @@ describe("FIPL YEAR 2025", () => {
   test("2513", async () => {
     const meetId = "2513";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: benchOnlyColumns,
     });
@@ -169,11 +171,11 @@ describe("FIPL YEAR 2025", () => {
   test("2514", async () => {
     const meetId = "2514";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -182,11 +184,11 @@ describe("FIPL YEAR 2025", () => {
   test("2515", async () => {
     const meetId = "2515";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -195,11 +197,11 @@ describe("FIPL YEAR 2025", () => {
   test("2516", async () => {
     const meetId = "2516";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -208,11 +210,11 @@ describe("FIPL YEAR 2025", () => {
   test("2517", async () => {
     const meetId = "2517";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -221,11 +223,11 @@ describe("FIPL YEAR 2025", () => {
   test("2518", async () => {
     const meetId = "2518";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -234,11 +236,11 @@ describe("FIPL YEAR 2025", () => {
   test("2519", async () => {
     const meetId = "2519";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -247,11 +249,11 @@ describe("FIPL YEAR 2025", () => {
   test("2520", async () => {
     const meetId = "2520";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });
@@ -260,11 +262,11 @@ describe("FIPL YEAR 2025", () => {
   test("2521", async () => {
     const meetId = "2521";
     await convertFiplPdfToOplCsv(
-      getInputPdfPath(meetId),
-      getOutputCsvPath(meetId),
+      getInputPdfPath(federation, meetId),
+      getOutputCsvPath(federation, meetId),
       { isOpenDivision: false },
     );
-    compareCSVFiles(getOutputCsvPath(meetId), getReferenceCsvPath(meetId), {
+    compareCSVFiles(getOutputCsvPath(federation, meetId), getReferenceCsvPath(federation, meetId), {
       sortColumn: "Name",
       compareColumns: allColumns,
     });

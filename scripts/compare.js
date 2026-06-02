@@ -7,12 +7,22 @@ import { parseCsvLine } from "../packages/opl-tools/src/lib/csv.js";
 
 function printUsage() {
   console.error(
-    "Usage: node scripts/compare-csv-names.js <federation> <meetId> [columnName]",
+    "Usage: node scripts/compare.js <federation> <meetId> [columnName]",
+  );
+  console.error("");
+  console.error(
+    "  federation   - Federation key; reads tests/dataset/<federation>/<meetId>/",
+  );
+  console.error(
+    "  meetId       - Meet folder under tests/dataset/<federation>/",
+  );
+  console.error(
+    "  columnName   - Optional; column to compare (default: Name). Compares entries.csv vs entries-parsed.csv",
   );
   console.error("");
   console.error("Example:");
-  console.error("  node scripts/compare-csv-names.js fipl 2601");
-  console.error("  node scripts/compare-csv-names.js fipl 2601 Name");
+  console.error("  node scripts/compare.js fipl 2601");
+  console.error("  node scripts/compare.js fipl 2601 Name");
 }
 
 function parseCsv(content) {

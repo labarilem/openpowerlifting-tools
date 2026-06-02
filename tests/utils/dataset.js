@@ -1,30 +1,11 @@
-function resolveFederationAndMeetId(firstArg, secondArg) {
-  if (secondArg === undefined) {
-    return { federation: "fipl", meetId: firstArg };
-  }
-  return { federation: firstArg, meetId: secondArg };
-}
-
-export function getInputPdfPath(federationOrMeetId, maybeMeetId) {
-  const { federation, meetId } = resolveFederationAndMeetId(
-    federationOrMeetId,
-    maybeMeetId,
-  );
+export function getInputPdfPath(federation, meetId) {
   return `./tests/dataset/${federation}/${meetId}/input.pdf`;
 }
 
-export function getOutputCsvPath(federationOrMeetId, maybeMeetId) {
-  const { federation, meetId } = resolveFederationAndMeetId(
-    federationOrMeetId,
-    maybeMeetId,
-  );
+export function getOutputCsvPath(federation, meetId) {
   return `./tests/dataset/${federation}/${meetId}/entries-parsed.csv`;
 }
 
-export function getReferenceCsvPath(federationOrMeetId, maybeMeetId) {
-  const { federation, meetId } = resolveFederationAndMeetId(
-    federationOrMeetId,
-    maybeMeetId,
-  );
+export function getReferenceCsvPath(federation, meetId) {
   return `./tests/dataset/${federation}/${meetId}/entries.csv`;
 }

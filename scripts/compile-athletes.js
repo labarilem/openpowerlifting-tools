@@ -10,12 +10,17 @@ function printUsage() {
   console.error("Usage: node scripts/compile-athletes.js <federation> [repoPath]");
   console.error("");
   console.error(
-    "  federation - Name of the federation folder under meet-data/",
+    "  federation  - Name of the federation folder under meet-data/",
   );
-  console.error("  repoPath   - Path to the cloned opl-data repository");
+  console.error(
+    "  repoPath    - Optional; path to the cloned opl-data repository (default from config.js)",
+  );
   console.error("");
   console.error("Example:");
   console.error("  node scripts/compile-athletes.js fipl");
+  console.error(
+    "  node scripts/compile-athletes.js fipl ~/opl-data",
+  );
 }
 
 function readEntriesRows(entriesPath) {

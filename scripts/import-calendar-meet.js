@@ -19,6 +19,11 @@ function printUsage() {
   console.error("  year            Calendar file year, e.g. 2026");
   console.error("  meetCalendarId  id field of the meet in that JSON");
   console.error("  outputDir       Destination folder (created if missing)");
+  console.error("");
+  console.error("Example:");
+  console.error(
+    "  node scripts/import-calendar-meet.js fipl 2026 1 ./tests/dataset/fipl/calendar-meet-1",
+  );
 }
 
 function parseArgs(argv) {

@@ -10,6 +10,15 @@ function printUsage() {
     "Usage: node scripts/set-column.js <federation> <meetId> <columnName> <columnValue>",
   );
   console.error("");
+  console.error(
+    "  federation   - Federation key; edits tests/dataset/<federation>/<meetId>/entries.csv",
+  );
+  console.error(
+    "  meetId       - Meet folder under tests/dataset/<federation>/",
+  );
+  console.error("  columnName   - Header name of the column to set");
+  console.error("  columnValue  - Cell value written for every data row");
+  console.error("");
   console.error("Example:");
   console.error('  node scripts/set-column.js fipl 2507 Division "Senior"');
 }

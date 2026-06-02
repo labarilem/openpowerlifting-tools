@@ -15,3 +15,7 @@ namesOverrides.set("luca anica stefan,2000", "Stefan Luca Anica");
 namesOverrides.set("nicoleta nica oana,2003", "Oana Nicoleta Nica");
 namesOverrides.set("mitya ciancio matteo,2004", "Matteo Mitya Ciancio");
 namesOverrides.set("abd elhraman wafa,2005", "Wafa Abd Elhraman");
+namesOverrides.set("nicol' carlo bianco,2004", "Nicolò Carlo Bianco");
+namesOverrides.set("luca orru,1991", "Luca Orrù");
+namesOverrides.set("sinhuh angelo rossi,1996", "Sinhuè Angelo Rossi");
+namesOverrides.set("uchenna iwunze aloy junior,2001", "Aloy Iwunze");

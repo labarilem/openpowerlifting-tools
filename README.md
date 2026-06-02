@@ -6,14 +6,25 @@ The published CLI interface is:
 
 `npx @labarilem/opl-tools generate <federation> <year> <meetId> <outputDir> [...]`
 
-The repo currently ships with the `fipl` federation adapter. Additional federations
-can plug into the same interface once their adapters are implemented.
+The repo ships with `fipl` and `fipe` federation adapters.
+
+**FIPL** is the primary, fully supported federation: calendar scraping, `generate`
+(PDF download and merge, CSV output), calendar-driven meet import, new-meet detection
+via the scraped calendar, and the other workflows documented below.
+
+**FIPE** has only an **experimental PDF parser** (`packages/opl-tools/src/federations/fipe/`).
+It does not include the full FIPL suite (no calendar, no `generate` CLI, no automatic
+new-meet detection, and no calendar-backed import). Official FIPE results are not always
+published on the federation website, so meet PDFs are often sourced manually; the parser
+is tested against fixtures under `tests/dataset/fipe/` when you have a file to convert.
 
 ## Usage
 
-### Generate one meet from FIPL website
+### Generate one meet (FIPL calendar)
 
-This scrapes the FIPL calendar for a given year, selects one meet by calendar sequential id, downloads and merges result PDFs in memory, parses the merged PDF, and writes final OPL files to `outputDir`.
+For `fipl`, this scrapes the federation calendar for a given year, selects one meet
+by its calendar `id`, downloads and merges result PDFs in memory, parses the merged
+PDF, and writes final OPL files to `outputDir`.
 
 Run without installing using the published [`@labarilem/opl-tools`](https://www.npmjs.com/package/@labarilem/opl-tools) package:
 
@@ -27,7 +38,7 @@ Or, from this repo as a dev workspace:
 npm run generate <federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]
 ```
 
-- **`federation`** (required): currently `fipl`
+- **`federation`** (required): must support calendar-backed `generate` (currently **`fipl` only**; not `fipe`)
 - **`year`** (required): positive integer calendar year
 - **`meetId`** (required): positive integer id from that year's scraped calendar
 - **`outputDir`** (required): destination directory for final outputs
@@ -63,15 +74,22 @@ npm test
 
 ### Import entries into test dataset from OPL repo
 
+Copies `entries.csv`, `meet.csv`, and `URL` from your local `opl-data` checkout into
+`tests/dataset/<federation>/<meetId>/` (by default), and downloads `input.pdf` when a
+URL file is present and `input.pdf` is not already there.
+
 Run:
 
 ```
-npm run import-opl-meet <federation> <meet id>
+npm run import-opl-meet <federation> <meetId> [repoPath] [outputDir]
 ```
 
-If you run it without arguments, the script will show its documentation.
+If `repoPath` is omitted, the script uses `defaultOplDataRepoPath` from `config.js`.
+If `outputDir` is omitted, it defaults to `./tests/dataset/<federation>/<meetId>`.
 
-Example to import a FIPL meet from default OPL repo path to default output dir:
+If you run it without the required arguments, the script prints usage.
+
+Example (default repo path and output directory):
 
 ```
 npm run import-opl-meet fipl 2605
@@ -105,7 +123,10 @@ Example:
 npm run format tests/dataset/fipl/2602/entries.csv BodyweightKg 2
 ```
 
-## Compare names
+## Compare CSV column
+
+Compare values in one column between `tests/dataset/<federation>/<meetId>/entries.csv`
+and `entries-parsed.csv` (defaults to the `Name` column).
 
 Run:
 
@@ -162,7 +183,7 @@ npm run update-calendar fipl 2026
 
 ## Set column value
 
-Set all values of one column in a meet `entries.csv`.
+Set every data row’s value for one column in `tests/dataset/<federation>/<meetId>/entries.csv`.
 
 Run:
 
@@ -170,10 +191,10 @@ Run:
 npm run set-column <federation> <meetId> <columnName> <columnValue>
 ```
 
-Example:
+Example (quote the value if it contains spaces):
 
 ```
-npm run set-column fipl 2507 Division Open
+npm run set-column fipl 2507 Division "Open"
 ```
 
 ## Release
@@ -194,13 +215,13 @@ Run this if not already logged in:
 npm login
 ```
 
-4. Publish:
+3. Publish:
 
 ```
 npm run publish
 ```
 
-5. Verify the release on NPM:
+4. Verify the release on NPM:
 
 ```
 npm view @labarilem/opl-tools version

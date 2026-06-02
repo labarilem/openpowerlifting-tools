@@ -1,6 +1,10 @@
+import { fipeFederation } from "./fipe/index.js";
 import { fiplFederation } from "./fipl/index.js";
 
-const federations = new Map([[fiplFederation.id, fiplFederation]]);
+const federations = new Map([
+  [fipeFederation.id, fipeFederation],
+  [fiplFederation.id, fiplFederation],
+]);
 
 function normalizeFederationId(federation) {
   return String(federation || "")

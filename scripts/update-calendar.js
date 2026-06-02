@@ -14,6 +14,10 @@ function printUsage() {
   console.error(
     "  year        Optional; calendar year (defaults to current year)",
   );
+  console.error("");
+  console.error("Example:");
+  console.error("  node scripts/update-calendar.js fipl");
+  console.error("  node scripts/update-calendar.js fipl 2026");
 }
 
 function parseArgs(argv) {
