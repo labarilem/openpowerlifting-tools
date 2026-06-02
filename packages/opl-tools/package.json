@@ -1,6 +1,6 @@
 {
   "name": "@labarilem/opl-tools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI tools to convert powerlifting meet results into OpenPowerlifting CSV format. Ships with the FIPL federation adapter.",
   "keywords": [
     "powerlifting",
