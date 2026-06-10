@@ -7,7 +7,7 @@ import {
 import { getFederationOrThrow } from "../federations/index.js";
 
 export const GENERATE_USAGE =
-  "<federation> <year> <meetId> <outputDir> [--isOpenDivision <true|false>]";
+  "<federation> <year> <meetId|latest> <outputDir> [--isOpenDivision <true|false>]";
 
 /** @param {string} message */
 function log(message) {
@@ -20,6 +20,12 @@ function parsePositiveInt(name, rawValue) {
     throw new Error(`${name} must be a positive integer`);
   }
   return value;
+}
+
+/** @param {string} rawValue @returns {number | "latest"} */
+function parseMeetIdArg(rawValue) {
+  if (rawValue === "latest") return "latest";
+  return parsePositiveInt("meetId", rawValue);
 }
 
 function parseBooleanOption(name, rawValue) {
@@ -75,7 +81,7 @@ function parseArgs(argv, optionSpecs) {
 
   const [federation, yearRaw, meetIdRaw, outputDir, ...rest] = argv;
   const year = parsePositiveInt("year", yearRaw);
-  const meetId = parsePositiveInt("meetId", meetIdRaw);
+  const meetId = parseMeetIdArg(meetIdRaw);
   const options = parseOptions(rest, optionSpecs);
 
   return { federation, year, meetId, outputDir, options };
@@ -118,10 +124,30 @@ export async function runGenerate(argv) {
 
   log(`Fetching ${federation.toUpperCase()} calendar for ${year}...`);
   const calendar = await federationModule.scrapeCalendar(year);
-  const meet = calendar.find((entry) => entry.id === meetId);
+
+  let resolvedMeetId = meetId;
+  if (meetId === "latest") {
+    if (typeof federationModule.findLatestMeetWithResults !== "function") {
+      throw new Error(
+        `Federation "${federation}" does not support meetId=latest.`,
+      );
+    }
+    const latestMeet = federationModule.findLatestMeetWithResults(calendar, year);
+    if (!latestMeet) {
+      throw new Error(
+        `No meets with published results found in ${federation.toUpperCase()} calendar ${year}`,
+      );
+    }
+    resolvedMeetId = latestMeet.id;
+    log(
+      `Resolved meetId=latest to ${resolvedMeetId} (${latestMeet.name.trim()})`,
+    );
+  }
+
+  const meet = calendar.find((entry) => entry.id === resolvedMeetId);
   if (!meet) {
     throw new Error(
-      `No meet with id ${meetId} found in ${federation.toUpperCase()} calendar ${year}`,
+      `No meet with id ${resolvedMeetId} found in ${federation.toUpperCase()} calendar ${year}`,
     );
   }
 

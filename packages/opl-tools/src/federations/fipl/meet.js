@@ -114,6 +114,47 @@ export function resolveMeetIsoDate(dateStr, calendarYear, resultsUrls) {
   }
 }
 
+/**
+ * @param {{ resultsUrls?: string[] }} meet
+ */
+export function meetHasPublishedResults(meet) {
+  return (
+    Array.isArray(meet.resultsUrls) &&
+    meet.resultsUrls.some((u) => typeof u === "string" && u.trim())
+  );
+}
+
+/**
+ * @param {Array<{ id?: number, date: string, resultsUrls?: string[] }>} calendar
+ * @param {number} year
+ */
+export function findLatestMeetWithResults(calendar, year) {
+  let latest = null;
+  let latestDate = null;
+
+  for (const meet of calendar) {
+    if (!meetHasPublishedResults(meet)) continue;
+
+    let isoDate;
+    try {
+      isoDate = resolveMeetIsoDate(meet.date, year, meet.resultsUrls);
+    } catch {
+      continue;
+    }
+
+    if (
+      latestDate == null ||
+      isoDate > latestDate ||
+      (isoDate === latestDate && meet.id > latest.id)
+    ) {
+      latest = meet;
+      latestDate = isoDate;
+    }
+  }
+
+  return latest;
+}
+
 function meetTownFromLocation(locRaw) {
   const s = locRaw.trim();
   const m = s.match(/^(.+?)\s*-\s*([A-Z]{2})\s*$/);

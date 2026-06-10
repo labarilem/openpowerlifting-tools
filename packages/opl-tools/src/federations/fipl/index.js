@@ -1,5 +1,8 @@
 import { scrapeCalendar } from "./calendar.js";
-import { buildMeetArtifactsFromCalendarEntry } from "./meet.js";
+import {
+  buildMeetArtifactsFromCalendarEntry,
+  findLatestMeetWithResults,
+} from "./meet.js";
 import {
   convertPdfBytesToOplCsv,
   convertPdfToOplCsv,
@@ -11,6 +14,7 @@ export const fiplFederation = {
     isOpenDivision: "boolean",
   },
   scrapeCalendar,
+  findLatestMeetWithResults,
   buildMeetArtifactsFromCalendarEntry,
   convertPdfBytesToOplCsv,
   convertPdfToOplCsv,

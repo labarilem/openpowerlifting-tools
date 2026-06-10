@@ -1,14 +1,29 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   buildMeetArtifactsFromCalendarEntry,
   buildMeetCsvContent,
   buildUrlFileContent,
+  findLatestMeetWithResults,
   formatMeetName,
   isoDateFromResultsUrls,
+  meetHasPublishedResults,
   parseItalianCalendarDate,
   resolveMeetIsoDate,
 } from "../../../packages/opl-tools/src/federations/fipl/meet.js";
+
+const calendar2026 = JSON.parse(
+  fs.readFileSync(
+    path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../../scripts/data/fipl/calendar/2026.json",
+    ),
+    "utf8",
+  ),
+);
 
 test("parseItalianCalendarDate parses first date and month", () => {
   assert.equal(parseItalianCalendarDate("15/16 marzo", 2026), "2026-03-15");
@@ -57,6 +72,30 @@ test("buildMeetArtifactsFromCalendarEntry uses calendar date for meet.csv", () =
   );
   assert.equal(isoDate, "2026-05-29");
   assert.match(meetCsv, /FIPL,2026-05-29,Italy,,Fiera Di Rimini Wellness,/);
+});
+
+test("meetHasPublishedResults detects non-empty result PDF URLs", () => {
+  assert.equal(meetHasPublishedResults({ resultsUrls: [] }), false);
+  assert.equal(meetHasPublishedResults({ resultsUrls: ["  "] }), false);
+  assert.equal(
+    meetHasPublishedResults({
+      resultsUrls: ["https://example.test/results.pdf"],
+    }),
+    true,
+  );
+});
+
+test("findLatestMeetWithResults picks the most recent meet with published results", () => {
+  const latest = findLatestMeetWithResults(calendar2026, 2026);
+  assert.equal(latest?.id, 12);
+});
+
+test("findLatestMeetWithResults returns null when no meets have results", () => {
+  const calendar = [
+    { id: 1, date: "1 GENNAIO 2026", resultsUrls: [] },
+    { id: 2, date: "2 GENNAIO 2026", resultsUrls: ["  "] },
+  ];
+  assert.equal(findLatestMeetWithResults(calendar, 2026), null);
 });
 
 test("buildMeetCsvContent and buildUrlFileContent format output", () => {
